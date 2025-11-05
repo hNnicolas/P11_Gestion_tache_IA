@@ -1,0 +1,29 @@
+import { NextRequest, NextResponse } from "next/server";
+import { loginUserAction } from "@/app/actions/loginUserAction";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { email, password } = await req.json();
+
+    const { user, token } = await loginUserAction({ email, password });
+
+    const res = NextResponse.json({ user });
+
+    res.cookies.set({
+      name: "auth_token",
+      value: token,
+      httpOnly: true,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 7, // 7 jours
+    });
+
+    return res;
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || "Erreur serveur" },
+      { status: 400 }
+    );
+  }
+}

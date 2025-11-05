@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/* Variables personnalisées */
+:root {
+  --color-principal: #d3580b;
+  --color-text: #1f1f1f;
+  --color-sous-texte: #6b7280;
+  --color-tag1: #f36b6b;
+  --color-tag1-bg: #ffe0e0;
+  --color-tag2: #ebb252;
+  --color-tag2-bg: #fef1d7;
+  --color-tag3: #26ad60;
+  --color-tag3-bg: #f1fff8;
+  --color-button-hover: #e5e7eb;
+
+  --font-primary: "Manrope", sans-serif;
+  --font-secondary: "Inter", sans-serif;
+
+  --font-heading-size: 24px;
+  --font-text-size: 18px;
+  --font-subtext-size: 14px;
+}
+
+/* Conteneur principal limité */
+.container {
+  max-width: 1440px;
+  max-height: 1744px;
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+  overflow: auto;
+}
+
+/* Thème clair */
+body {
+  color: var(--color-text);
+  font-family: var(--font-primary);
+}
+
+/* Titres principaux */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-primary);
+  font-weight: 600; /* Semi Bold */
+  font-size: var(--font-heading-size);
+}
+
+/* Texte standard */
+p,
+span,
+a {
+  font-family: var(--font-primary);
+  font-size: var(--font-text-size);
+  color: var(--color-text);
+}
+
+/* Sous-texte */
+.small-text {
+  font-family: var(--font-secondary);
+  font-size: var(--font-subtext-size);
+  color: var(--color-sous-texte);
+  font-size: 14px;
+}
+
+/* Tags */
+.tag1 {
+  background: #ffe2e0;
+  color: #fa5c5c;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tag2 {
+  background: #fff2d0;
+  color: #e8b043;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tag3 {
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tag4 {
+  background: #ffe2e0;
+  color: #f87171;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Boutons */
+button {
+  font-family: var(--font-primary);
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: var(--color-button-hover);
+}
