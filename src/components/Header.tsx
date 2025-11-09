@@ -1,13 +1,24 @@
 "use client";
-import { useEffect, useState } from "react";
 
-export default function Header() {
-  const [user, setUser] = useState<{ name: string } | null>(null);
+import { useEffect, useState } from "react";
+import clsx from "clsx";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface HeaderProps {
+  currentPage?: "dashboard" | "projects" | "profil";
+}
+
+export default function Header({ currentPage }: HeaderProps) {
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // fetch côté client pour récupérer l'user si connecté
-    fetch("/api/me") // route qui lit le JWT depuis le cookie et renvoie l'user
-      .then((res) => res.json())
+    fetch("/api/me", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : Promise.reject("Non authentifié")))
       .then((data) => setUser(data.user))
       .catch(() => setUser(null));
   }, []);
@@ -20,20 +31,38 @@ export default function Header() {
     : "?";
 
   return (
-    <header className="w-full bg-white shadow-sm">
+    <header
+      className={clsx(
+        "w-full shadow-sm",
+        currentPage === "dashboard" || currentPage === "projects"
+          ? "bg-[#0F0F0F]"
+          : "bg-white"
+      )}
+    >
       <div className="flex items-center justify-between h-20 px-8 max-w-7xl mx-auto">
+        {/* Logo */}
         <div className="shrink-0">
           <img
             src="/images/icons/logo.png"
             alt="Logo"
-            className="h-10 w-auto"
+            className={clsx("h-10 w-auto", {
+              "filter invert":
+                currentPage === "dashboard" || currentPage === "projects",
+            })}
           />
         </div>
 
-        <nav className="flex items-center gap-[30px]">
+        {/* Navigation */}
+        <nav className="flex items-center gap-6">
           <a
-            href="/"
-            className="flex items-center gap-3 bg-black text-white! px-5 py-5 rounded-[7px] text-sm font-medium"
+            href="/dashboard"
+            className={clsx(
+              "flex items-center gap-3 px-5 py-3 rounded-[7px] text-sm font-medium",
+              {
+                "bg-[#0F0F0F] text-white":
+                  currentPage === "dashboard" || currentPage === "projects",
+              }
+            )}
           >
             <img
               src="/images/icons/menu-items.png"
@@ -42,23 +71,40 @@ export default function Header() {
             />
             Tableau de bord
           </a>
+
           <a
             href="/projects"
-            className="flex items-center px-6 py-3 rounded-lg text-sm font-medium hover:bg-gray-50"
+            className={clsx(
+              "flex items-center gap-2 px-5 py-3 rounded-[7px] text-sm font-medium",
+              {
+                "bg-[#0F0F0F] text-white":
+                  currentPage === "dashboard" || currentPage === "projects",
+                "bg-white text-[#D3580B]": currentPage === "profil",
+              }
+            )}
           >
-            <img src="/images/icons/folder.png" alt="" className="h-5 w-5" />
-            <span
-              style={{ color: "var(--color-principal)", marginLeft: "10px" }}
-            >
-              Projets
-            </span>
+            <img
+              src="/images/icons/folder.png"
+              alt="Projets"
+              className="h-5 w-5"
+            />
+            Projets
           </a>
         </nav>
 
+        {/* Utilisateur */}
         {user && (
           <a
             href="/profil"
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-[#FFE8D9] text-base font-semibold text-[#D2691E] cursor-pointer hover:opacity-80 transition"
+            className={clsx(
+              "flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold cursor-pointer transition",
+              {
+                "bg-[#FFE8D9] text-[#D2691E] hover:opacity-80":
+                  currentPage === "dashboard" || currentPage === "projects",
+                "bg-[#FFF2E8] text-[#D3580B] hover:opacity-80":
+                  currentPage === "profil",
+              }
+            )}
           >
             {initials}
           </a>

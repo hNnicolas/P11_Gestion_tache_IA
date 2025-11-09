@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -17,7 +18,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -31,7 +32,7 @@ export default function LoginPage() {
       console.log("✅ Connexion réussie :", data.user);
 
       // Redirection page accueil
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -48,7 +49,7 @@ export default function LoginPage() {
             alt="Logo Abricot"
             width={160}
             height={50}
-            priority
+            style={{ height: "auto" }}
           />
         </div>
 
@@ -115,12 +116,12 @@ export default function LoginPage() {
 
           <p className="text-center text-sm mt-8 text-gray-600">
             Pas encore inscrit ?{" "}
-            <a
+            <Link
               href="/signup"
               className="text-[#DB7433] hover:underline font-medium"
             >
               Créer un compte
-            </a>
+            </Link>
           </p>
         </div>
       </div>

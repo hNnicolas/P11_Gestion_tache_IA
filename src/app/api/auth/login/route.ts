@@ -7,6 +7,8 @@ export async function POST(req: NextRequest) {
 
     const { user, token } = await loginUserAction({ email, password });
 
+    console.log("Token envoyé côté serveur login :", token); // <-- ici
+
     const res = NextResponse.json({ user });
 
     res.cookies.set({

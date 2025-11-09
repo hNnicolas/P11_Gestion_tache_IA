@@ -1,23 +1,10 @@
 import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import type { ReactNode } from "react";
 
-export const metadata = {
-  title: "Abricot",
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
-      <body>
-        <Header />
-        <main className="px-10 py-8">{children}</main>
-        <Footer />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

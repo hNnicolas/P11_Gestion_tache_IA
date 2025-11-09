@@ -35,26 +35,34 @@ export interface IUserInitials {
 }
 
 // Projet
-export interface IProject {
-  id: string;
-  name: string;
-  description: string;
-  ownerId: string;
-  contributors: IUser[];
-}
-
-// Tâche
 export interface ITask {
   id: string;
   title: string;
-  description: string;
-  status: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
-  priority: "LOW" | "MEDIUM" | "HIGH";
-  dueDate: Date;
-  projectId: string;
+  project: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+  assignees: {
+    user: {
+      id: string;
+      name: string | null;
+      email: string;
+    };
+  }[];
+  comments: {
+    id: string;
+    content: string;
+    author: {
+      id: string;
+      name: string | null;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  priority: string;
+  dueDate: Date | null;
   creatorId: string;
-  assignees: IUser[];
-  comments?: IComment[];
 }
 
 // Commentaire

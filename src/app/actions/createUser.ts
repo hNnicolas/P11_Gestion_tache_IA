@@ -1,33 +1,33 @@
-"use server";
+// src/app/actions/createUser.ts
+"use client";
 
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
-import { ICreateUser } from "@/lib/prisma";
-
-export async function createUserAction(data: ICreateUser) {
+export async function createUserAction(data: {
+  email: string;
+  name: string;
+  password: string;
+}) {
   const { email, name, password } = data;
 
-  if (!email || !password || !name) {
+  if (!email || !name || !password) {
     throw new Error("Tous les champs sont requis.");
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    throw new Error("Cet utilisateur existe déjà.");
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = await prisma.user.create({
-    data: {
-      email,
-      name,
-      password: hashedPassword,
+  // Appel du backend Next.js pour créer l'utilisateur
+  const res = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ email, name, password }),
   });
 
-  // 🔹 Log pour vérifier l'enregistrement
-  console.log("Nouvel utilisateur créé dans Prisma :", user);
+  const json = await res.json();
 
-  return { id: user.id, email: user.email, name: user.name };
+  if (!res.ok) {
+    throw new Error(json.error || "Erreur lors de la création du compte");
+  }
+
+  console.log("Utilisateur créé via le backend :", json.user);
+
+  return json.user;
 }
