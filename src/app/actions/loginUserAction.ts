@@ -1,4 +1,5 @@
 "use server";
+
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -20,11 +21,13 @@ export async function loginUserAction({ email, password }: ILoginUser) {
   if (!isValid) throw new Error("Mot de passe incorrect.");
 
   const token = jwt.sign(
-    { id: user.id, email: user.email, name: user.name },
+    { userId: user.id, email: user.email, name: user.name },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
 
-  // On renvoie juste les données et le token, sans NextResponse
-  return { user: { id: user.id, email: user.email, name: user.name }, token };
+  return {
+    user: { id: user.id, email: user.email, name: user.name },
+    token,
+  };
 }

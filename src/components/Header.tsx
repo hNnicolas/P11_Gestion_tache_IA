@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
+import Link from "next/link";
 
 interface User {
   id: string;
@@ -15,12 +16,27 @@ interface HeaderProps {
 
 export default function Header({ currentPage }: HeaderProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/me", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : Promise.reject("Non authentifié")))
-      .then((data) => setUser(data.user))
-      .catch(() => setUser(null));
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/profile", {
+          credentials: "include",
+        });
+
+        if (!res.ok) throw new Error("Non authentifié");
+
+        const data = await res.json();
+        setUser(data.user); // l'API renvoie { user }
+      } catch (err) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
   }, []);
 
   const initials = user?.name
@@ -42,19 +58,21 @@ export default function Header({ currentPage }: HeaderProps) {
       <div className="flex items-center justify-between h-20 px-8 max-w-7xl mx-auto">
         {/* Logo */}
         <div className="shrink-0">
-          <img
-            src="/images/icons/logo.png"
-            alt="Logo"
-            className={clsx("h-10 w-auto", {
-              "filter invert":
-                currentPage === "dashboard" || currentPage === "projects",
-            })}
-          />
+          <Link href="/">
+            <img
+              src="/images/icons/logo.png"
+              alt="Logo"
+              className={clsx("h-10 w-auto", {
+                "filter invert":
+                  currentPage === "dashboard" || currentPage === "projects",
+              })}
+            />
+          </Link>
         </div>
 
         {/* Navigation */}
         <nav className="flex items-center gap-6">
-          <a
+          <Link
             href="/dashboard"
             className={clsx(
               "flex items-center gap-3 px-5 py-3 rounded-[7px] text-sm font-medium",
@@ -70,9 +88,9 @@ export default function Header({ currentPage }: HeaderProps) {
               className="h-5 w-5"
             />
             Tableau de bord
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/projects"
             className={clsx(
               "flex items-center gap-2 px-5 py-3 rounded-[7px] text-sm font-medium",
@@ -89,12 +107,12 @@ export default function Header({ currentPage }: HeaderProps) {
               className="h-5 w-5"
             />
             Projets
-          </a>
+          </Link>
         </nav>
 
         {/* Utilisateur */}
         {user && (
-          <a
+          <Link
             href="/profil"
             className={clsx(
               "flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold cursor-pointer transition",
@@ -107,7 +125,16 @@ export default function Header({ currentPage }: HeaderProps) {
             )}
           >
             {initials}
-          </a>
+          </Link>
+        )}
+
+        {!user && !loading && (
+          <Link
+            href="/login"
+            className="px-5 py-2 rounded-lg bg-black text-white hover:bg-[#1c1c1c] text-sm font-medium"
+          >
+            Se connecter
+          </Link>
         )}
       </div>
     </header>

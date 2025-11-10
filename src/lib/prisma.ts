@@ -38,6 +38,7 @@ export interface IUserInitials {
 export interface ITask {
   id: string;
   title: string;
+  status: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED"; // <-- ajouté
   project: {
     id: string;
     name: string;
@@ -60,7 +61,7 @@ export interface ITask {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  priority: string;
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   dueDate: Date | null;
   creatorId: string;
 }

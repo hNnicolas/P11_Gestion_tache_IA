@@ -7,8 +7,7 @@ export async function POST(req: NextRequest) {
 
     const { user, token } = await loginUserAction({ email, password });
 
-    console.log("Token envoyé côté serveur login :", token); // <-- ici
-
+    // Crée une réponse vide
     const res = NextResponse.json({ user });
 
     res.cookies.set({
@@ -16,8 +15,8 @@ export async function POST(req: NextRequest) {
       value: token,
       httpOnly: true,
       path: "/",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: false,
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, // 7 jours
     });
 
