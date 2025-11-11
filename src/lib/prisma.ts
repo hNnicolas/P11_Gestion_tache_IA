@@ -38,7 +38,9 @@ export interface IUserInitials {
 export interface ITask {
   id: string;
   title: string;
-  status: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED"; // <-- ajouté
+  description: string | null;
+  status: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
+  projectId: string;
   project: {
     id: string;
     name: string;

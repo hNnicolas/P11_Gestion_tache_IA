@@ -1,54 +1,162 @@
 "use client";
 
 import { ITask } from "@/lib/prisma";
+import Link from "next/link";
 
 interface TasksKanbanProps {
   tasks: ITask[];
 }
 
-// Mapping backend -> frontend
+// Traduction des statuts
 const STATUS_MAP: Record<ITask["status"], string> = {
-  TODO: "A Faire",
+  TODO: "À faire",
   IN_PROGRESS: "En cours",
-  DONE: "Terminées",
+  DONE: "Terminée",
   CANCELLED: "Annulée",
 };
 
-// Ordre d'affichage des colonnes
-const STATUS_ORDER = ["A Faire", "En cours", "Terminées"] as const;
+// Couleurs de badges basées sur les variables CSS
+const BADGE_STYLES: Record<string, string> = {
+  "À faire":
+    "text-(--color-tag1)! bg-(--color-tag1-bg)! border border-(--color-tag1-bg)!",
+  "En cours":
+    "text-(--color-tag2)! bg-(--color-tag2-bg)! border border-(--color-tag2-bg)!",
+  Terminée:
+    "text-(--color-tag3)! bg-(--color-tag3-bg)! border border-(--color-tag3-bg)!",
+  Annulée: "text-(--color-sous-texte)! bg-[#f3f4f6]! border border-[#f3f4f6]!",
+};
+
+// Ordre des colonnes
+const STATUS_ORDER = ["À faire", "En cours", "Terminée"] as const;
 
 export default function TasksKanban({ tasks }: TasksKanbanProps) {
-  // Grouper les tâches par status frontend
   const tasksByStatus = STATUS_ORDER.reduce((acc, status) => {
     acc[status] = tasks.filter((task) => STATUS_MAP[task.status] === status);
     return acc;
   }, {} as Record<string, ITask[]>);
 
   return (
-    <div className="flex gap-4 overflow-x-auto">
+    <div className="flex flex-col md:flex-row gap-6 overflow-x-auto">
       {STATUS_ORDER.map((status) => (
         <div
           key={status}
-          className="flex-1 bg-[#F3F4F6] rounded-lg p-4 min-w-[250px]"
+          className="flex-1 min-w-[300px] bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-5 shadow-sm"
         >
-          <h3 className="font-semibold text-sm mb-4">{status}</h3>
-          {tasksByStatus[status].length === 0 ? (
-            <p className="text-gray-400 text-sm italic">Aucune tâche</p>
-          ) : (
-            tasksByStatus[status].map((task) => (
-              <div
-                key={task.id}
-                className="bg-white rounded-md p-3 mb-3 shadow-sm border border-gray-200"
-              >
-                <p className="font-medium">{task.title}</p>
-                {task.priority && (
-                  <span className="text-xs text-gray-500">
-                    Priorité : {task.priority}
-                  </span>
-                )}
-              </div>
-            ))
-          )}
+          {/* Titre colonne */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-[15px] text-[#111827]">
+              {status}
+            </h3>
+            <span className="text-xs text-(--color-sous-texte)! font-medium">
+              {tasksByStatus[status].length} tâche
+              {tasksByStatus[status].length > 1 ? "s" : ""}
+            </span>
+          </div>
+
+          {/* Liste des tâches */}
+          <div className="flex flex-col gap-3">
+            {tasksByStatus[status].length === 0 ? (
+              <p className="text-(--color-sous-texte)! text-sm italic">
+                Aucune tâche
+              </p>
+            ) : (
+              tasksByStatus[status].map((task) => (
+                <div
+                  key={task.id}
+                  className="bg-white rounded-xl border border-[#E5E7EB] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+                >
+                  {/* Titre + Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="font-semibold text-[15px] text-[#111827] truncate flex-1 min-w-0">
+                      {task.title}
+                    </h4>
+                    <span
+                      className={`text-[12px] px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 ${BADGE_STYLES[status]}`}
+                    >
+                      {status}
+                    </span>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-(--color-sous-texte)! text-[13px] truncate mt-1">
+                    {task.project?.description ?? "Aucune description"}
+                  </p>
+
+                  <div className="flex items-center gap-2 mt-3 text-[12px] text-(--color-sous-texte)! truncate">
+                    {/* Projet */}
+                    <div className="flex items-center gap-1 truncate">
+                      <img
+                        src="/images/icons/icon-folder.png"
+                        alt="Projet"
+                        width={14}
+                        height={14}
+                        className="shrink-0"
+                      />
+                      <span className="truncate max-w-[90px]">
+                        {task.project?.name ?? "Projet inconnu"}
+                      </span>
+                    </div>
+
+                    <span className="mx-2 shrink-0">|</span>
+
+                    {/* Date */}
+                    {task.dueDate && (
+                      <>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <img
+                            src="/images/icons/icon-calendar.png"
+                            alt="Date"
+                            width={14}
+                            height={14}
+                            className="shrink-0"
+                          />
+                          <span className="truncate">
+                            {new Date(task.dueDate).toLocaleDateString(
+                              "fr-FR",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                              }
+                            )}
+                          </span>
+                        </div>
+
+                        <span className="mx-2 shrink-0">|</span>
+                      </>
+                    )}
+
+                    {/* Commentaires */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <img
+                        src="/images/icons/icon-message.png"
+                        alt="Commentaires"
+                        width={14}
+                        height={14}
+                        className="shrink-0"
+                      />
+                      <span className="truncate">
+                        {task.comments?.length ?? 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bouton Link Single Project */}
+                  {task.project?.id ? (
+                    <Link
+                      href={`/projects/${task.project.id}`}
+                      className="inline-block bg-black text-white! text-[13px] font-medium rounded-md px-4 py-1.5"
+                    >
+                      Voir
+                    </Link>
+                  ) : (
+                    <span className="text-gray-400 text-[13px]">
+                      Projet indisponible
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       ))}
     </div>

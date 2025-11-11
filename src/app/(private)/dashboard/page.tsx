@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getUser } from "@/app/actions/user";
-import { getAssignedTasks } from "@/app/actions/dashboard";
 import DashboardTasksView from "@/components/DashboardTasksView";
 import { getAssignedTasksAction } from "@/app/actions/getAssignedTasksAction";
 
@@ -34,7 +33,7 @@ export default async function DashboardPage() {
 
             <Link
               href="/projets"
-              className="bg-black text-white px-6 py-3 rounded-[10px] small-text font-medium shadow-sm"
+              className="bg-black text-white! px-6 py-3 rounded-[10px] small-text font-medium shadow-sm"
             >
               + Créer un projet
             </Link>

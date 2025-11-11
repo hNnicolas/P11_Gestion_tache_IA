@@ -1,27 +1,57 @@
 "use server";
 
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { verifyToken } from "@/app/utils/auth";
+import {
+  getUserProjectRole,
+  hasProjectAccess,
+  Role,
+} from "@/app/utils/permissions";
 
-export async function getProfileAction() {
-  // ✅ attendre le résultat de cookies()
+export const getProjectByIdAction = async (projectId: string) => {
+  if (!projectId) throw new Error("ID du projet manquant");
+
+  // Récupération du token depuis les cookies
   const cookieStore = await cookies();
   const authToken = cookieStore.get("auth_token")?.value;
 
   if (!authToken) throw new Error("Non authentifié");
 
-  const res = await fetch(`${process.env.BACKEND_URL}/auth/profile`, {
-    method: "GET",
-    headers: {
-      // si ton backend lit le token depuis le header Authorization
-      Authorization: `Bearer ${authToken}`,
+  // Vérifier le token
+  const user = await verifyToken(authToken);
+  if (!user) throw new Error("Token invalide");
+
+  console.log("DEBUG authToken:", authToken);
+  console.log("DEBUG verifyToken result:", user);
+
+  // Vérifier l'accès au projet
+  const access = await hasProjectAccess(user.userId, projectId);
+  console.log("DEBUG getProjectByIdAction - Access granted:", access);
+
+  if (!access) throw new Error("Accès refusé au projet");
+
+  // Récupérer le projet avec toutes les relations nécessaires
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      owner: { select: { id: true, name: true, email: true } },
+      members: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+      },
+      tasks: {
+        include: { creator: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+      _count: { select: { tasks: true } },
     },
-    credentials: "include",
   });
 
-  const data = await res.json();
+  if (!project) throw new Error("Projet non trouvé");
 
-  if (!res.ok)
-    throw new Error(data?.message || "Impossible de récupérer le profil");
+  // Ajouter le rôle de l'utilisateur sur ce projet
+  const role: Role | null = await getUserProjectRole(user.userId, projectId);
+  console.log("DEBUG getProjectByIdAction - User role:", role);
 
-  return data.data.user;
-}
+  return { ...project, userRole: role };
+};
