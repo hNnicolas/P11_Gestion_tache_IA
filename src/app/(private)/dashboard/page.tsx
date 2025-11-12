@@ -32,7 +32,7 @@ export default async function DashboardPage() {
             </div>
 
             <Link
-              href="/projets"
+              href="/projects"
               className="bg-black text-white! px-6 py-3 rounded-[10px] small-text font-medium shadow-sm"
             >
               + Créer un projet
