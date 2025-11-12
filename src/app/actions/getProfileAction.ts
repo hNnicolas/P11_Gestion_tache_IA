@@ -12,26 +12,24 @@ import {
 export const getProjectByIdAction = async (projectId: string) => {
   if (!projectId) throw new Error("ID du projet manquant");
 
-  // Récupération du token depuis les cookies
+  // 🔐 Authentification
   const cookieStore = await cookies();
   const authToken = cookieStore.get("auth_token")?.value;
-
   if (!authToken) throw new Error("Non authentifié");
 
-  // Vérifier le token
   const user = await verifyToken(authToken);
   if (!user) throw new Error("Token invalide");
 
-  console.log("DEBUG authToken:", authToken);
-  console.log("DEBUG verifyToken result:", user);
+  // console.log("DEBUG authToken:", authToken);
+  // console.log("DEBUG verifyToken result:", user);
 
-  // Vérifier l'accès au projet
+  // 🔎 Vérification d’accès
   const access = await hasProjectAccess(user.userId, projectId);
-  console.log("DEBUG getProjectByIdAction - Access granted:", access);
+  // console.log("DEBUG getProjectByIdAction - Access granted:", access);
 
   if (!access) throw new Error("Accès refusé au projet");
 
-  // Récupérer le projet avec toutes les relations nécessaires
+  // 📦 Requête principale avec toutes les relations nécessaires
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
@@ -40,7 +38,19 @@ export const getProjectByIdAction = async (projectId: string) => {
         include: { user: { select: { id: true, name: true, email: true } } },
       },
       tasks: {
-        include: { creator: { select: { id: true, name: true, email: true } } },
+        include: {
+          creator: { select: { id: true, name: true, email: true } },
+          assignees: {
+            include: {
+              user: { select: { id: true, name: true, email: true } },
+            },
+          },
+          comments: {
+            include: {
+              author: { select: { id: true, name: true, email: true } },
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       },
       _count: { select: { tasks: true } },
@@ -49,9 +59,8 @@ export const getProjectByIdAction = async (projectId: string) => {
 
   if (!project) throw new Error("Projet non trouvé");
 
-  // Ajouter le rôle de l'utilisateur sur ce projet
   const role: Role | null = await getUserProjectRole(user.userId, projectId);
-  console.log("DEBUG getProjectByIdAction - User role:", role);
+  // console.log("DEBUG getProjectByIdAction - User role:", role);
 
   return { ...project, userRole: role };
 };
