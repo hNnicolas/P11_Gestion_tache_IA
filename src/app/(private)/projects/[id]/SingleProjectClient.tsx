@@ -6,9 +6,21 @@ import Image from "next/image";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
 import EditProjectModal from "@/components/modals/EditProjectModal";
 
+type Task = {
+  id: string;
+  title: string;
+  description?: string;
+  dueDate?: string | number;
+  status: "A faire" | "En cours" | "Terminées";
+  assignees?: { user: { id: string; name: string } }[];
+  comments?: { id: string; author: { name: string }; content: string }[];
+};
+
 export default function SingleProjectClient({ project }: { project: any }) {
   const router = useRouter();
 
+  const [tasks, setTasks] = useState<Task[]>(project.tasks);
+  const [currentProject, setCurrentProject] = useState(project);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeStatus, setActiveStatus] = useState("A faire");
@@ -292,7 +304,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
 
         {/* Liste des tâches */}
         <div className="flex flex-col gap-4">
-          {project.tasks.map((task: any) => {
+          {tasks.map((task: any) => {
             const mapStatusToKey = (status: string) => {
               switch (status) {
                 case "A faire":
@@ -459,12 +471,14 @@ export default function SingleProjectClient({ project }: { project: any }) {
         setIsOpen={setIsCreateModalOpen}
         project={project}
         currentUserId={project.currentUserId || project.owner.id}
+        onTaskCreated={(newTask: any) => setTasks((prev) => [newTask, ...prev])}
       />
 
       <EditProjectModal
         isOpen={isEditModalOpen}
         setIsOpen={setIsEditModalOpen}
-        project={project}
+        project={currentProject}
+        onUpdate={(updatedProject: any) => setCurrentProject(updatedProject)}
       />
     </main>
   );

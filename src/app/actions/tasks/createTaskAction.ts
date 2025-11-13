@@ -8,9 +8,24 @@ import { canCreateTasks } from "@/app/utils/permissions";
 export type CreateTaskInput = {
   title: string;
   description?: string;
-  priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   dueDate?: string;
-  assigneeIds?: string[];
+  priority?: "LOW" | "MEDIUM" | "HIGH";
+  assigneeIds: string[];
+  status?: "A faire" | "En cours" | "Terminées";
+};
+
+// Mapping frontend -> DB
+const mapStatusToDB = (status?: "A faire" | "En cours" | "Terminées") => {
+  switch (status) {
+    case "A faire":
+      return "TODO";
+    case "En cours":
+      return "in progress";
+    case "Terminées":
+      return "Done";
+    default:
+      return "TODO";
+  }
 };
 
 export const createTaskAction = async (
@@ -19,44 +34,33 @@ export const createTaskAction = async (
   projectMembers: { userId: string; name: string }[] = [],
   projectOwnerId?: string
 ) => {
-  // ✅ Récupère le token depuis les cookies
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   if (!token) throw new Error("Utilisateur non authentifié");
 
-  // ✅ Décode le JWT pour obtenir l'userId
   const decoded: any = jwt.decode(token);
   const userId = decoded?.sub || decoded?.userId;
   if (!userId) throw new Error("Impossible de déterminer l'utilisateur");
 
-  console.log("🔹 UserId extrait du token:", userId);
+  // console.log("🔹 UserId extrait du token:", userId);
 
-  // ✅ Vérifie les permissions côté serveur
   const allowed = await canCreateTasks(userId, projectId);
   if (!allowed)
     throw new Error("Vous n'avez pas la permission de créer une tâche.");
 
-  // ✅ Filtrage des assignés valides (membres du projet)
+  // Filtrage des assignés valides
   let validAssigneeIds = (data.assigneeIds || []).filter((id) =>
     projectMembers.some((member) => member.userId === id)
   );
 
-  // Si aucun assigné valide → propriétaire par défaut
-  if (validAssigneeIds.length === 0 && projectOwnerId) {
-    console.warn(
-      "⚠️ Aucun assignee valide, assignation automatique au propriétaire :",
-      projectOwnerId
-    );
-    validAssigneeIds = [projectOwnerId];
-  }
-
-  // ✅ Création directe de la tâche dans Prisma
+  // Création de la tâche avec mapping du statut
   const task = await prisma.task.create({
     data: {
       title: data.title,
       description: data.description,
       priority: data.priority || "MEDIUM",
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      status: mapStatusToDB(data.status),
       projectId,
       creatorId: userId,
       assignees: {
@@ -70,6 +74,6 @@ export const createTaskAction = async (
     },
   });
 
-  console.log("✅ Tâche créée avec succès !", task);
+  // console.log("✅ Tâche créée avec succès !", task);
   return task;
 };
