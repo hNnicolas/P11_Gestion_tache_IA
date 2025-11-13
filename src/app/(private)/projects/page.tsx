@@ -1,26 +1,77 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { getProjectsAction } from "@/app/actions/getProjectsAction";
+import { getProjectsProgressAction } from "@/app/actions/getAssignedTasksAction";
+import CreateProjectModal from "@/components/modals/CreateProjectModal";
 
-export default async function ProjectsPage() {
-  let projects = [];
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [allUsers, setAllUsers] = useState<
+    { id: string; name: string; email: string }[]
+  >([]);
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
 
-  try {
-    projects = await getProjectsAction();
-  } catch (error) {
-    console.error(error);
-    return (
-      <div className="max-w-7xl mx-auto px-8 py-6">
-        <p className="text-red-500">Impossible de récupérer les projets.</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // 1️⃣ Récupérer les projets
+        const projectsData = await getProjectsAction();
+        setProjects(projectsData);
+
+        // 2️⃣ Récupérer les progressions (par projet)
+        const progressData = await getProjectsProgressAction();
+        const progressObj = progressData.reduce(
+          (acc, { projectId, progress }) => {
+            acc[projectId] = progress;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
+        setProgressMap(progressObj);
+
+        // 3️⃣ Collecte des utilisateurs
+        const users: { id: string; name: string; email: string }[] = [];
+        projectsData.forEach((project: any) => {
+          if (project.owner) users.push(project.owner);
+          project.members?.forEach((m: any) => users.push(m.user));
+        });
+        setAllUsers(Array.from(new Map(users.map((u) => [u.id, u])).values()));
+
+        // 4️⃣ Utilisateur courant
+        if (projectsData.length > 0) {
+          setCurrentUser({
+            id: projectsData[0].owner.id,
+            name: projectsData[0].owner.name ?? "Unknown",
+            email: projectsData[0].owner.email ?? "",
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des données :", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const getInitials = (name: string) => {
     const parts = name.trim().split(" ");
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+    return parts.length === 1
+      ? parts[0].slice(0, 2).toUpperCase()
+      : (parts[0][0] + parts[1][0]).toUpperCase();
   };
+
+  if (loading) return <p>Chargement des projets...</p>;
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-6">
@@ -28,20 +79,16 @@ export default async function ProjectsPage() {
       <div className="flex justify-between items-center mb-2">
         <div>
           <h1 className="text-2xl font-bold mb-5">Mes projets</h1>
-          <p
-            className="text-sm mt-1"
-            style={{ color: "var(--color-text, #1f1f1f)" }}
-          >
+          <p className="text-sm mt-1" style={{ color: "var(--color-text)" }}>
             Gérez vos projets
           </p>
         </div>
-        {/* Bouton créer un projet */}
-        <Link
-          href="/projects/create" // ou la route de la page single project
-          className="text-white! bg-black px-4 py-2 rounded-[10px] text-sm font-medium hover:opacity-90 transition"
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-black text-white px-4 py-2 rounded-[10px] text-sm font-medium hover:opacity-90 transition"
         >
           + Créer un projet
-        </Link>
+        </button>
       </div>
 
       {projects.length === 0 ? (
@@ -49,15 +96,11 @@ export default async function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {projects.map((project: any) => {
-            const completedTasks =
-              project.tasks?.filter((t: any) => t.status === "done")?.length ||
-              0;
+            const progress = progressMap[project.id] ?? 0;
+
             const totalTasks =
               project._count?.tasks || project.tasks?.length || 0;
-            const progress =
-              totalTasks > 0
-                ? Math.round((completedTasks / totalTasks) * 100)
-                : 0;
+            const completedTasks = Math.round((progress / 100) * totalTasks);
 
             return (
               <div
@@ -69,29 +112,28 @@ export default async function ProjectsPage() {
                   <h2 className="font-semibold text-lg">{project.name}</h2>
                   <p
                     className="text-sm mt-1 line-clamp-2"
-                    style={{ color: "var(--color-sous-texte, #6b7280)" }}
+                    style={{ color: "var(--color-sous-texte)" }}
                   >
                     {project.description || "Aucune description"}
                   </p>
                 </div>
 
-                {/* Barre de progression */}
+                {/* Barre de progression dynamique */}
                 <div className="mt-5">
                   <div className="flex justify-between items-center mb-1">
                     <h3
                       className="text-sm font-medium"
-                      style={{ color: "var(--color-text, #1f1f1f)" }}
+                      style={{ color: "var(--color-text)" }}
                     >
                       Progression
                     </h3>
                     <span
                       className="text-sm font-semibold"
-                      style={{ color: "var(--color-text, #1f1f1f)" }}
+                      style={{ color: "var(--color-text)" }}
                     >
                       {progress}%
                     </span>
                   </div>
-
                   <div className="w-full bg-gray-200 rounded-full h-2.5 relative">
                     <div
                       className="h-2.5 rounded-full transition-all duration-500"
@@ -99,12 +141,11 @@ export default async function ProjectsPage() {
                         width: `${progress}%`,
                         backgroundColor: "var(--color-principal, #d3580b)",
                       }}
-                    ></div>
+                    />
                   </div>
-
                   <div
                     className="flex justify-between text-xs mt-1"
-                    style={{ color: "var(--color-sous-texte, #6b7280)" }}
+                    style={{ color: "var(--color-sous-texte)" }}
                   >
                     <span>
                       {completedTasks}/{totalTasks} tâches terminées
@@ -124,13 +165,11 @@ export default async function ProjectsPage() {
                     />
                     <span
                       className="text-sm"
-                      style={{ color: "var(--color-sous-texte, #6b7280)" }}
+                      style={{ color: "var(--color-sous-texte)" }}
                     >
-                      Équipe ({project.members.length})
+                      Équipe ({1 + project.members.length})
                     </span>
                   </div>
-
-                  {/* Ligne des initiales */}
                   <div className="flex items-center gap-3 flex-wrap">
                     {/* Propriétaire */}
                     <div className="flex items-center gap-2">
@@ -146,14 +185,13 @@ export default async function ProjectsPage() {
                       <span
                         className="text-sm font-medium px-2 py-0.5 rounded-full"
                         style={{
-                          backgroundColor: "var(--color-tag1-bg, #FFE8D9)",
+                          backgroundColor: "#FFE8D9",
                           color: "var(--color-principal, #d3580b)",
                         }}
                       >
                         Propriétaire
                       </span>
                     </div>
-
                     {/* Contributeurs */}
                     {project.members.length > 0 && (
                       <div className="flex items-center -space-x-2">
@@ -173,6 +211,18 @@ export default async function ProjectsPage() {
             );
           })}
         </div>
+      )}
+
+      {currentUser && (
+        <CreateProjectModal
+          isOpen={isCreateModalOpen}
+          setIsOpen={setIsCreateModalOpen}
+          currentUser={currentUser}
+          allUsers={allUsers}
+          onProjectCreated={(newProject) =>
+            setProjects((prev) => [newProject, ...prev])
+          }
+        />
       )}
     </div>
   );

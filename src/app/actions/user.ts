@@ -1,4 +1,3 @@
-// src/app/actions/user.ts
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
@@ -34,5 +33,23 @@ export async function getUser() {
   } catch (err) {
     console.error("Erreur getUser:", err);
     return null;
+  }
+}
+
+// Récupère tous les utilisateurs pour les sélectionner comme contributeurs
+export async function getAllUsers() {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+      orderBy: { name: "asc" },
+    });
+    return users;
+  } catch (err) {
+    console.error("Erreur getAllUsers:", err);
+    return [];
   }
 }

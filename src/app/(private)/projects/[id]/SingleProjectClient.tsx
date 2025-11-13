@@ -371,25 +371,30 @@ export default function SingleProjectClient({ project }: { project: any }) {
                     className="flex flex-wrap items-center gap-3 mt-3"
                     aria-label="Contributeurs assignés"
                   >
-                    {task.assignees.map((assignee: any) => (
-                      <div
-                        key={assignee.user.id}
-                        className="flex items-center gap-2"
-                      >
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-[--color-sous-texte]">
+                        Assigné à :
+                      </span>
+                      {task.assignees.map((assignee: any) => (
                         <div
-                          className="w-6 h-6 flex items-center justify-center rounded-full font-semibold text-xs"
-                          style={{
-                            backgroundColor: "#E5E7EB",
-                            color: "#0F0F0F",
-                          }}
+                          key={assignee.user.id}
+                          className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full"
                         >
-                          {getInitials(assignee.user.name)}
+                          <div
+                            className="w-6 h-6 flex items-center justify-center rounded-full font-semibold text-xs"
+                            style={{
+                              backgroundColor: "#E5E7EB",
+                              color: "#0F0F0F",
+                            }}
+                          >
+                            {getInitials(assignee.user.name)}
+                          </div>
+                          <span className="text-sm text-[--color-text]">
+                            {assignee.user.name}
+                          </span>
                         </div>
-                        <span className="text-sm text-(--color-text)">
-                          {assignee.user.name}
-                        </span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
 
