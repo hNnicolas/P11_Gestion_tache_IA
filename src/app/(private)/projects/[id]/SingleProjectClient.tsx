@@ -457,8 +457,10 @@ export default function SingleProjectClient({ project }: { project: any }) {
       <CreateTaskModal
         isOpen={isCreateModalOpen}
         setIsOpen={setIsCreateModalOpen}
-        projectId={project.id}
+        project={project}
+        currentUserId={project.currentUserId || project.owner.id}
       />
+
       <EditProjectModal
         isOpen={isEditModalOpen}
         setIsOpen={setIsEditModalOpen}
