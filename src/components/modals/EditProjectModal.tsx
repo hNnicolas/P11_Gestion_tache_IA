@@ -22,7 +22,7 @@ export default function EditProjectModal({
   const [description, setDescription] = useState(project.description);
   const [showContributors, setShowContributors] = useState(false);
 
-  const contributorCount = project.members.length + 1; // +1 pour le propriétaire
+  const contributorCount = project.members.length + 1;
 
   useEffect(() => {
     setName(project.name);

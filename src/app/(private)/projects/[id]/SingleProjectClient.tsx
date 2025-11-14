@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
 import EditProjectModal from "@/components/modals/EditProjectModal";
+import CreateTaskModalWithIA from "@/components/modals/CreateTaskModalWithIA";
+import { createTaskWithIAClient } from "@/app/actions/createTaskWithIAClient";
 
 type Task = {
   id: string;
@@ -23,11 +25,40 @@ export default function SingleProjectClient({ project }: { project: any }) {
   const [currentProject, setCurrentProject] = useState(project);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isIAModalOpen, setIsIAModalOpen] = useState(false);
   const [activeStatus, setActiveStatus] = useState("A faire");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [expandedComments, setExpandedComments] = useState<
     Record<string, boolean>
   >({});
+
+  // Callback pour récupérer la tâche générée par IA
+  const handleTaskCreatedByIA = async (prompt: string) => {
+    try {
+      const newTask = await createTaskWithIAClient(prompt);
+
+      // Normalisation : s'assurer que title et description sont des strings
+      const normalizedTask: Task = {
+        id: Date.now().toString(),
+        title:
+          typeof newTask.title === "string"
+            ? newTask.title
+            : newTask.title.map((c: any) => c.text).join(""),
+        description:
+          typeof newTask.description === "string"
+            ? newTask.description
+            : newTask.description.map((c: any) => c.text).join(""),
+        status: "A faire",
+        assignees: [],
+        comments: [],
+      };
+
+      setTasks((prev) => [normalizedTask, ...prev]);
+      setIsIAModalOpen(false);
+    } catch (err) {
+      console.error("Erreur création tâche IA :", err);
+    }
+  };
 
   const getInitials = (name: string) => {
     if (!name) return "";
@@ -115,6 +146,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
             Créer une tâche
           </button>
           <button
+            onClick={() => setIsIAModalOpen(true)}
             className="flex items-center gap-2 bg-(--color-principal) text-white px-3 py-2 rounded-[10px] text-sm font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-(--color-principal)"
             aria-label="Fonctionnalité d’intelligence artificielle"
           >
@@ -485,6 +517,13 @@ export default function SingleProjectClient({ project }: { project: any }) {
         project={currentProject}
         onUpdate={(updatedProject: any) => setCurrentProject(updatedProject)}
       />
+      {isIAModalOpen && (
+        <CreateTaskModalWithIA
+          isOpen={isIAModalOpen}
+          setIsOpen={setIsIAModalOpen}
+          projectId={project.id}
+        />
+      )}
     </main>
   );
 }
