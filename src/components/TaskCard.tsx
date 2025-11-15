@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { ITask } from "@/lib/prisma";
 
 type Props = {
   task: ITask;
+  onTaskView: (task: ITask) => void;
 };
 
-export default function TaskCard({ task }: Props) {
+export default function TaskCard({ task, onTaskView }: Props) {
   const statusFR: Record<ITask["status"], string> = {
     TODO: "À faire",
     IN_PROGRESS: "En cours",
@@ -75,14 +75,14 @@ export default function TaskCard({ task }: Props) {
           {status}
         </span>
 
-        {/* Bouton lien vers le projet */}
+        {/* Bouton pour ouvrir la modale */}
         {task.project?.id ? (
-          <Link
-            href={`/projects/${task.project.id}`}
+          <button
+            onClick={() => onTaskView(task)}
             className="inline-block bg-black text-white! px-6 py-2 rounded-[10px] small-text shadow-md"
           >
             Voir
-          </Link>
+          </button>
         ) : (
           <span className="text-gray-400 text-[13px] px-6 py-2 rounded-[10px] inline-block">
             Projet indisponible

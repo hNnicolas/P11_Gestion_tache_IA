@@ -1,7 +1,6 @@
 // app/projects/[id]/page.tsx
 import { getProjectByIdAction } from "@/app/actions/getProfileAction";
 import SingleProjectClient from "./SingleProjectClient";
-import { notFound } from "next/navigation";
 
 export default async function SingleProjectPage({
   params,

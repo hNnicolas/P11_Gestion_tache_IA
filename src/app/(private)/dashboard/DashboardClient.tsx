@@ -48,7 +48,11 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
           Par ordre de priorité
         </span>
 
-        <DashboardTasksView tasks={tasks} />
+        <DashboardTasksView
+          tasks={tasks}
+          project={null}
+          currentUserId={user.id}
+        />
       </section>
 
       {isModalOpen && (

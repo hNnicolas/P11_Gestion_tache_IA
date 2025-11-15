@@ -384,8 +384,8 @@ export default function SingleProjectClient({ project }: { project: any }) {
 
                   <Image
                     src="/images/icons/button-dot.png"
-                    width={20}
-                    height={20}
+                    width={50}
+                    height={50}
                     alt="dot"
                     className="ml-auto"
                   />

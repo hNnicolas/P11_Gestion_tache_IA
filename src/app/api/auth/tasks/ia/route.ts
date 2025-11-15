@@ -195,6 +195,8 @@ Sujet : ${prompt}`
       include: { assignees: true, comments: true },
     });
 
+    console.log("🟩 Tâche créée :", task.id);
+
     return NextResponse.json({ task });
   } catch (err: any) {
     console.error("🔥 ERREUR GLOBALE :", err);

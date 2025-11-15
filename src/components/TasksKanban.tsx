@@ -1,10 +1,10 @@
 "use client";
 
 import { ITask } from "@/lib/prisma";
-import Link from "next/link";
 
 interface TasksKanbanProps {
   tasks: ITask[];
+  onTaskView: (task: ITask) => void;
 }
 
 // Traduction des statuts
@@ -29,7 +29,7 @@ const BADGE_STYLES: Record<string, string> = {
 // Ordre des colonnes
 const STATUS_ORDER = ["À faire", "En cours", "Terminée"] as const;
 
-export default function TasksKanban({ tasks }: TasksKanbanProps) {
+export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
   const tasksByStatus = STATUS_ORDER.reduce((acc, status) => {
     acc[status] = tasks.filter((task) => STATUS_MAP[task.status] === status);
     return acc;
@@ -48,7 +48,7 @@ export default function TasksKanban({ tasks }: TasksKanbanProps) {
               {status}
             </h3>
             <span className="text-xs text-(--color-sous-texte)! font-medium">
-              {tasksByStatus[status].length} tâche
+              {tasksByStatus[status].length} tâches
               {tasksByStatus[status].length > 1 ? "s" : ""}
             </span>
           </div>
@@ -141,18 +141,12 @@ export default function TasksKanban({ tasks }: TasksKanbanProps) {
                   </div>
 
                   {/* Bouton Link Single Project */}
-                  {task.project?.id ? (
-                    <Link
-                      href={`/projects/${task.project.id}`}
-                      className="inline-block bg-black text-white! text-[13px] font-medium rounded-md px-4 py-1.5"
-                    >
-                      Voir
-                    </Link>
-                  ) : (
-                    <span className="text-gray-400 text-[13px]">
-                      Projet indisponible
-                    </span>
-                  )}
+                  <button
+                    onClick={() => onTaskView(task)}
+                    className="bg-black text-white text-[13px] rounded-md px-4 py-1.5"
+                  >
+                    Voir
+                  </button>
                 </div>
               ))
             )}

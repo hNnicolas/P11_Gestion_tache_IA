@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getProjectsAction } from "@/app/actions/getProjectsAction";
 import { getProjectsProgressAction } from "@/app/actions/getAssignedTasksAction";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<any[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -106,6 +108,7 @@ export default function ProjectsPage() {
               <div
                 key={project.id}
                 className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between"
+                onClick={() => router.push(`/projects/${project.id}`)}
               >
                 {/* Nom et description */}
                 <div>

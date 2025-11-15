@@ -1,30 +1,69 @@
 "use server";
 
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { verifyToken } from "@/app/utils/auth";
+import { hasProjectAccess, Role } from "@/app/utils/permissions";
+import { getTaskAssignments } from "@/app/utils/taskAssigments";
+import { getTaskComments } from "@/app/utils/taskComments";
 
-const BACKEND_URL =
-  process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+export async function getTasks(projectId: string) {
+  if (!projectId) throw new Error("ID du projet manquant");
 
-export const getTasksAction = async (projectId: string) => {
-  // await cookies() car c'est une Promise
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
+  try {
+    // ----------------------
+    // 🔐 Authentification
+    // ----------------------
+    const cookieStore = await cookies();
+    const authToken = cookieStore.get("auth_token")?.value;
+    if (!authToken) throw new Error("Utilisateur non connecté");
 
-  if (!token) throw new Error("Utilisateur non authentifié");
+    const user = await verifyToken(authToken);
+    if (!user) throw new Error("Token invalide");
 
-  const res = await fetch(`${BACKEND_URL}/projects/${projectId}/tasks`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+    // ----------------------
+    // 🔎 Vérification d'accès
+    // ----------------------
+    const access = await hasProjectAccess(user.userId, projectId);
+    if (!access) throw new Error("Vous n'avez pas accès à ce projet");
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(
-      errorData.message || "Erreur lors de la récupération des tâches"
+    // ----------------------
+    // 📦 Récupération des tâches
+    // ----------------------
+    const tasks = await prisma.task.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "asc" },
+      include: {
+        project: {
+          select: { id: true, name: true, description: true },
+        },
+        creator: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    // ----------------------
+    // 🧩 Enrichissement avec assignations & commentaires
+    // ----------------------
+    const enrichedTasks = await Promise.all(
+      tasks.map(async (task) => {
+        const assignees = await getTaskAssignments(task.id);
+        const comments = await getTaskComments(task.id);
+
+        return {
+          ...task,
+          status: task.status as "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED",
+          priority: task.priority as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
+          assignees,
+          comments,
+        };
+      })
     );
-  }
 
-  const responseData = await res.json();
-  return responseData.data.tasks;
-};
+    return enrichedTasks;
+  } catch (err) {
+    console.error("Erreur getTasks:", err);
+    throw err;
+  }
+}

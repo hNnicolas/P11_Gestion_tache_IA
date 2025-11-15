@@ -3,11 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { hasProjectAccess, canModifyTasks } from "@/app/utils/permissions";
 import { validateUpdateTaskData } from "@/app/utils/validation";
-import {
-  updateTaskAssignments,
-  getTaskAssignments,
-} from "@/app/utils/taskAssigments";
-import { getTaskComments } from "@/app/utils/taskComments";
 
 export type UpdateTaskInput = {
   title?: string;
@@ -18,64 +13,93 @@ export type UpdateTaskInput = {
   assigneeIds?: string[];
 };
 
+const validStatuses = ["TODO", "IN_PROGRESS", "DONE", "CANCELLED"] as const;
+type TaskStatus = (typeof validStatuses)[number];
+const validPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+type TaskPriority = (typeof validPriorities)[number];
+
+const castStatus = (status: string): TaskStatus =>
+  validStatuses.includes(status as TaskStatus)
+    ? (status as TaskStatus)
+    : "TODO";
+
+const castPriority = (priority: string | null | undefined): TaskPriority =>
+  priority && validPriorities.includes(priority as TaskPriority)
+    ? (priority as TaskPriority)
+    : "LOW";
+
 export const updateTaskAction = async (
   userId: string,
   projectId: string,
   taskId: string,
   data: UpdateTaskInput
 ) => {
-  // 1️⃣ Vérifier les permissions
-  const hasAccess = await hasProjectAccess(userId, projectId);
-  if (!hasAccess) throw new Error("Accès refusé au projet");
+  // vérifie les permissions
+  const access = await hasProjectAccess(userId, projectId);
+  if (!access) throw new Error("Accès refusé au projet");
 
-  const canModify = await canModifyTasks(userId, projectId);
-  if (!canModify)
-    throw new Error(
-      "Vous n'avez pas les permissions pour modifier cette tâche"
-    );
+  const modify = await canModifyTasks(userId, projectId);
+  if (!modify)
+    throw new Error("Vous n'avez pas les permissions pour modifier la tâche");
 
-  // 2️⃣ Valider les données
-  const validationErrors = validateUpdateTaskData(data);
-  if (validationErrors.length > 0) {
-    throw new Error(
-      `Données invalides: ${validationErrors.map((e) => e.message).join(", ")}`
-    );
+  // validation
+  const errors = validateUpdateTaskData(data);
+  if (errors.length > 0) {
+    throw new Error(errors.map((e) => e.message).join(", "));
   }
 
-  // 3️⃣ Vérifier que la tâche existe
-  const existingTask = await prisma.task.findFirst({
+  // vérifie la tâche
+  const taskExists = await prisma.task.findFirst({
     where: { id: taskId, projectId },
   });
-  if (!existingTask) throw new Error("Tâche non trouvée");
+  if (!taskExists) throw new Error("Tâche introuvable");
 
-  // 4️⃣ Préparer les données à mettre à jour
-  const updateData: any = {};
-  if (data.title !== undefined) updateData.title = data.title.trim();
+  // build update payload
+  const updatePayload: any = {};
+  if (data.title !== undefined) updatePayload.title = data.title.trim();
   if (data.description !== undefined)
-    updateData.description = data.description?.trim() || null;
-  if (data.status !== undefined) updateData.status = data.status;
-  if (data.priority !== undefined) updateData.priority = data.priority;
+    updatePayload.description = data.description?.trim() || null;
+  if (data.status !== undefined) updatePayload.status = data.status;
+  if (data.priority !== undefined) updatePayload.priority = data.priority;
   if (data.dueDate !== undefined)
-    updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+    updatePayload.dueDate = data.dueDate ? new Date(data.dueDate) : null;
 
-  // 5️⃣ Mettre à jour la tâche
-  const updatedTask = await prisma.task.update({
+  // update la tâche principal
+  await prisma.task.update({
     where: { id: taskId },
-    data: updateData,
+    data: updatePayload,
   });
 
-  // 6️⃣ Mettre à jour les assignations si fournies
+  // update les assignations
   if (data.assigneeIds !== undefined) {
-    await updateTaskAssignments(taskId, data.assigneeIds);
+    await prisma.taskAssignee.deleteMany({ where: { taskId } });
+    if (data.assigneeIds.length > 0) {
+      await prisma.taskAssignee.createMany({
+        data: data.assigneeIds.map((id) => ({ userId: id, taskId })),
+      });
+    }
   }
 
-  // 7️⃣ Récupérer la tâche complète avec assignations et commentaires
-  const assignees = await getTaskAssignments(taskId);
-  const comments = await getTaskComments(taskId);
+  // Récupère la tâche au complet
+  const fullTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: {
+      project: true,
+      creator: true,
+      assignees: { include: { user: true } },
+      comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
+    },
+  });
 
+  if (!fullTask) throw new Error("Erreur lors du rechargement de la tâche");
+
+  // 🔹 LOG pour debug
+  // console.log("fullTask raw from Prisma:", fullTask);
+
+  // 8️⃣ Cast status et priority pour TypeScript
   return {
-    ...updatedTask,
-    assignees,
-    comments,
+    ...fullTask,
+    status: castStatus(fullTask.status),
+    priority: castPriority(fullTask.priority),
   };
 };
