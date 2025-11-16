@@ -144,7 +144,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
       setTasks((prevTasks) => {
         const tasksMap = new Map<string, Task>();
 
-        // On commence par les tâches du résultat de recherche (elles passeront devant)
+        // Pace les tâches du résultat de recherche
         normalizedTasks.forEach((t) => tasksMap.set(t.id, t));
 
         // Puis on ajoute les anciennes tâches (sauf celles déjà présentes)
@@ -157,6 +157,8 @@ export default function SingleProjectClient({ project }: { project: any }) {
       });
 
       setSearchResults(normalizedTasks);
+      // Remettre le champ à zéro
+      setSearchQuery("");
     } else {
       alert(result.message);
     }

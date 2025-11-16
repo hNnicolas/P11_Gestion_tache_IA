@@ -8,12 +8,14 @@ type Task = {
   id: string;
   title: string;
   description: string;
+  isNew?: boolean;
 };
 
 type CreateModalIAProps = {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   projectId?: string;
+  onTaskCreated?: (prompt: string) => void;
 };
 
 export default function CreateModalIA({
@@ -62,12 +64,14 @@ export default function CreateModalIA({
             id: t.id,
             title: t.title,
             description: t.description,
+            isNew: true,
           }))
         : [
             {
               id: data.task.id,
               title: data.task.title,
               description: data.task.description,
+              isNew: true,
             },
           ];
 
@@ -81,9 +85,33 @@ export default function CreateModalIA({
     }
   };
 
+  /** Modification inline */
+  const handleUpdateTask = (
+    id: string,
+    field: "title" | "description",
+    value: string
+  ) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
+    );
+  };
+
   /** Suppression tâche */
   const deleteTask = (taskId: string) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  };
+
+  /** Sauvegarde tâche */
+  const handleSaveTask = async (task: Task) => {
+    if (!projectId) return;
+    try {
+      await createTaskWithIAClient(task.title, projectId);
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, isNew: false } : t))
+      );
+    } catch (err) {
+      console.error("Erreur sauvegarde tâche :", err);
+    }
   };
 
   if (!isOpen) return null;
@@ -110,7 +138,12 @@ export default function CreateModalIA({
             </h2>
           </div>
 
-          <button onClick={() => setIsOpen(false)}>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setPrompt("");
+            }}
+          >
             <Image
               src="/images/icons/close-modal.png"
               width={20}
@@ -121,13 +154,10 @@ export default function CreateModalIA({
         </div>
 
         {/* ----------- VUE 1 : GENERER ----------- */}
-
         {view === "generate" && (
           <div className="flex flex-col h-full">
-            {/* Zone scrollable si tu ajoutes du contenu plus tard */}
             <div className="flex-1 overflow-y-auto"></div>
 
-            {/* Input collé en bas */}
             <div className="mt-4 flex items-center gap-2 bg-[#F9FAFB] rounded-[20px] p-3">
               <input
                 type="text"
@@ -157,17 +187,26 @@ export default function CreateModalIA({
         {/* ----------- VUE 2 : LISTE ----------- */}
         {view === "list" && (
           <div className="flex flex-col">
-            {/* Liste scrollable */}
             <div className="max-h-[350px] overflow-y-auto flex flex-col gap-4 pr-1 mb-6">
               {tasks.map((task) => (
                 <div
                   key={task.id}
                   className="bg-white border border-[#E5E7EB] rounded-[20px] p-6 shadow-sm"
                 >
-                  <p className="font-semibold text-lg">{task.title}</p>
-                  <p className="text-gray-500 text-sm mt-1 mb-4">
-                    {task.description}
-                  </p>
+                  <input
+                    className="w-full border-b border-gray-300 outline-none text-lg font-semibold mb-2"
+                    value={task.title}
+                    onChange={(e) =>
+                      handleUpdateTask(task.id, "title", e.target.value)
+                    }
+                  />
+                  <textarea
+                    className="w-full border-b border-gray-200 outline-none text-sm text-gray-500 mb-4"
+                    value={task.description}
+                    onChange={(e) =>
+                      handleUpdateTask(task.id, "description", e.target.value)
+                    }
+                  />
 
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <button
@@ -183,14 +222,15 @@ export default function CreateModalIA({
                       Supprimer
                     </button>
 
-                    <span>|</span>
-
-                    <button className="flex items-center gap-1">
+                    <button
+                      className="flex items-center gap-1"
+                      onClick={() => handleSaveTask(task)}
+                    >
                       <Image
                         src="/images/icons/edit.png"
-                        width={18}
-                        height={18}
-                        alt="edit"
+                        width={14}
+                        height={14}
+                        alt="save"
                       />
                       Modifier
                     </button>
@@ -199,7 +239,6 @@ export default function CreateModalIA({
               ))}
             </div>
 
-            {/* Bouton + Ajouter les tâches */}
             <button
               className="mx-auto bg-black text-white rounded-full px-5 py-2 text-sm font-medium mb-6"
               onClick={() => setView("generate")}
@@ -207,7 +246,6 @@ export default function CreateModalIA({
               + Ajouter les tâches
             </button>
 
-            {/* Input bas */}
             <div className="flex items-center gap-2 bg-[#F9FAFB] rounded-[20px] p-3">
               <input
                 type="text"
