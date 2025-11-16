@@ -7,6 +7,7 @@ import CreateTaskModal from "@/components/modals/CreateTaskModal";
 import EditProjectModal from "@/components/modals/EditProjectModal";
 import CreateTaskModalWithIA from "@/components/modals/CreateTaskModalWithIA";
 import { createTaskWithIAClient } from "@/app/actions/createTaskWithIAClient";
+import { createCommentAction } from "@/app/actions/comments/createCommentAction";
 
 type Task = {
   id: string;
@@ -28,6 +29,8 @@ export default function SingleProjectClient({ project }: { project: any }) {
   const [isIAModalOpen, setIsIAModalOpen] = useState(false);
   const [activeStatus, setActiveStatus] = useState("A faire");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [newComments, setNewComments] = useState<Record<string, string>>({});
+  const currentUser = project.currentUser || project.owner;
   const [expandedComments, setExpandedComments] = useState<
     Record<string, boolean>
   >({});
@@ -91,6 +94,32 @@ export default function SingleProjectClient({ project }: { project: any }) {
 
   const toggleComments = (taskId: string) => {
     setExpandedComments((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
+  };
+
+  const handleAddComment = async (taskId: string) => {
+    const content = newComments[taskId]?.trim();
+    if (!content) return;
+
+    // Appel à ta Server Action
+    const result = await createCommentAction(project.id, taskId, content);
+
+    if (result.success) {
+      // Mise à jour immédiate du rendu
+      updateTaskComments(taskId, result.comment);
+
+      // Reset textarea
+      setNewComments({ ...newComments, [taskId]: "" });
+    }
+  };
+
+  const updateTaskComments = (taskId: string, newComment: any) => {
+    setTasks((prev: any[]) =>
+      prev.map((task) =>
+        task.id === taskId
+          ? { ...task, comments: [...task.comments, newComment] }
+          : task
+      )
+    );
   };
 
   return (
@@ -480,19 +509,114 @@ export default function SingleProjectClient({ project }: { project: any }) {
                       </svg>
                     </button>
                     {expandedComments[task.id] && (
-                      <ul className="mt-2 flex flex-col gap-1">
-                        {task.comments.map((comment: any) => (
-                          <li
-                            key={comment.id}
-                            className="text-sm text-gray-700 pl-2 border-l-2 border-gray-300"
-                          >
-                            <span className="font-semibold text-gray-900">
-                              {comment.author.name} :
-                            </span>{" "}
-                            {comment.content}
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="mt-2 flex flex-col gap-2">
+                        {/* Liste des commentaires */}
+                        <ul className="flex flex-col gap-2">
+                          {task.comments.map((comment: any) => {
+                            const commentDate = new Date(comment.createdAt); // Assure-toi que 'createdAt' est une date valide
+                            const day = commentDate.getDate();
+                            const month = commentDate.toLocaleString("fr-FR", {
+                              month: "short",
+                            });
+                            const hours = commentDate
+                              .getHours()
+                              .toString()
+                              .padStart(2, "0");
+                            const minutes = commentDate
+                              .getMinutes()
+                              .toString()
+                              .padStart(2, "0");
+
+                            return (
+                              <li
+                                key={comment.id}
+                                className="flex gap-2 items-start text-gray-700"
+                              >
+                                {/* Avatar commentateur */}
+                                <div
+                                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                                  style={{ backgroundColor: "#E5E7EB" }}
+                                >
+                                  <span className="text-sm font-medium text-black">
+                                    {comment.author.name
+                                      .split(" ")
+                                      .map((word: string) =>
+                                        word.charAt(0).toUpperCase()
+                                      )
+                                      .join("")
+                                      .slice(0, 2)}
+                                  </span>
+                                </div>
+
+                                {/* Contenu commentaire */}
+                                <div className="flex-1 bg-gray-100 rounded-xl p-2 border border-gray-200">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-semibold text-gray-900">
+                                      {comment.author.name}
+                                    </span>
+                                    <span
+                                      className="text-[6px]"
+                                      style={{ color: "#6B7280" }}
+                                    >
+                                      {`${day} ${month} ${hours}:${minutes}`}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-700 mt-1">
+                                    {comment.content}
+                                  </p>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+
+                        {/* Zone d'ajout de commentaire */}
+                        <div className="mt-3 bg-[#F7F7F7] p-3 rounded-xl border border-gray-200">
+                          <div className="flex items-start gap-3">
+                            {/* Avatar utilisateur */}
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center"
+                              style={{ backgroundColor: "#FFE8D9" }}
+                            >
+                              <span className="text-sm font-medium text-black">
+                                {currentUser.name
+                                  .split(" ")
+                                  .map((word: string) =>
+                                    word.charAt(0).toUpperCase()
+                                  )
+                                  .join("")
+                                  .slice(0, 2)}
+                              </span>
+                            </div>
+
+                            {/* Textarea + bouton */}
+                            <div className="flex-1">
+                              <textarea
+                                value={newComments[task.id] || ""}
+                                onChange={(e) =>
+                                  setNewComments({
+                                    ...newComments,
+                                    [task.id]: e.target.value,
+                                  })
+                                }
+                                placeholder="Ajouter un commentaire..."
+                                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                rows={2}
+                              />
+
+                              <div className="flex justify-end mt-2">
+                                <button
+                                  onClick={() => handleAddComment(task.id)}
+                                  disabled={!newComments[task.id]?.trim()}
+                                  className="text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed px-4 py-1.5 text-sm rounded-lg transition-all"
+                                >
+                                  Envoyer
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
