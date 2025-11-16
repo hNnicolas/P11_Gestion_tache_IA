@@ -8,6 +8,7 @@ import EditProjectModal from "@/components/modals/EditProjectModal";
 import CreateTaskModalWithIA from "@/components/modals/CreateTaskModalWithIA";
 import { createTaskWithIAClient } from "@/app/actions/createTaskWithIAClient";
 import { createCommentAction } from "@/app/actions/comments/createCommentAction";
+import { searchTasksAction } from "@/app/actions/tasks/searchTasksAction";
 
 type Task = {
   id: string;
@@ -31,6 +32,9 @@ export default function SingleProjectClient({ project }: { project: any }) {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const currentUser = project.currentUser || project.owner;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+
   const [expandedComments, setExpandedComments] = useState<
     Record<string, boolean>
   >({});
@@ -100,7 +104,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
     const content = newComments[taskId]?.trim();
     if (!content) return;
 
-    // Appel à ta Server Action
+    // Appel Server Action
     const result = await createCommentAction(project.id, taskId, content);
 
     if (result.success) {
@@ -120,6 +124,42 @@ export default function SingleProjectClient({ project }: { project: any }) {
           : task
       )
     );
+  };
+
+  const handleSearchTasks = async () => {
+    const result = await searchTasksAction(searchQuery);
+    if (result.success) {
+      console.log("[handleSearchTasks] Résultats :", result.tasks);
+
+      const normalizedTasks: Task[] = result.tasks.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description ?? undefined,
+        status: t.status as Task["status"],
+        dueDate: t.dueDate ? new Date(t.dueDate).getTime() : undefined,
+        assignees: t.assignees ?? [],
+        comments: t.comments ?? [],
+      }));
+
+      setTasks((prevTasks) => {
+        const tasksMap = new Map<string, Task>();
+
+        // On commence par les tâches du résultat de recherche (elles passeront devant)
+        normalizedTasks.forEach((t) => tasksMap.set(t.id, t));
+
+        // Puis on ajoute les anciennes tâches (sauf celles déjà présentes)
+        prevTasks.forEach((t) => {
+          if (!tasksMap.has(t.id)) tasksMap.set(t.id, t);
+        });
+
+        // Retourne la liste en conservant l'ordre : recherches en premier
+        return Array.from(tasksMap.values());
+      });
+
+      setSearchResults(normalizedTasks);
+    } else {
+      alert(result.message);
+    }
   };
 
   return (
@@ -350,14 +390,22 @@ export default function SingleProjectClient({ project }: { project: any }) {
               <input
                 type="text"
                 placeholder="Rechercher une tâche"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearchTasks();
+                }}
                 className="outline-none text-sm text-gray-600 bg-transparent w-32 sm:w-48"
                 aria-label="Rechercher une tâche"
               />
+
               <Image
                 src="/images/icons/search.png"
                 width={14}
                 height={14}
                 alt="Icône de recherche"
+                className="cursor-pointer"
+                onClick={handleSearchTasks}
               />
             </div>
           </div>
@@ -513,7 +561,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
                         {/* Liste des commentaires */}
                         <ul className="flex flex-col gap-2">
                           {task.comments.map((comment: any) => {
-                            const commentDate = new Date(comment.createdAt); // Assure-toi que 'createdAt' est une date valide
+                            const commentDate = new Date(comment.createdAt);
                             const day = commentDate.getDate();
                             const month = commentDate.toLocaleString("fr-FR", {
                               month: "short",
