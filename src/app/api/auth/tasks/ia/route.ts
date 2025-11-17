@@ -180,6 +180,8 @@ Sujet : ${prompt}`
     /* ---------------------------------------------------------
        Création tâche Prisma
     --------------------------------------------------------- */
+    console.log("🟩 Création tâche Prisma…");
+
     const task = await prisma.task.create({
       data: {
         title,
