@@ -30,7 +30,6 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-full bg-white">
-      {/* Colonne gauche : formulaire */}
       <div className="flex flex-col justify-center items-center md:w-1/2 w-full bg-[#F9FAFB] px-8 md:px-20 py-12">
         {/* Logo */}
         <div className="mb-8 md:mb-12">
@@ -123,7 +122,6 @@ export default function SignupPage() {
         </div>
       </div>
 
-      {/* Colonne droite : image */}
       <div className="relative md:w-1/2 w-full h-64 md:h-full">
         <Image
           src="/images/signup-page.png"

@@ -29,7 +29,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error || "Erreur de connexion");
 
       // Le cookie HTTP-only est déjà créé côté serveur
-      console.log("✅ Connexion réussie :", data.user);
+      // console.log("✅ Connexion réussie :", data.user);
 
       // Redirection page accueil
       router.push("/dashboard");
@@ -41,8 +41,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-white">
-      <div className="flex flex-col justify-center items-center w-1/2 bg-[#F9FAFB] px-20">
+    <div className="flex flex-col md:flex-row h-screen w-full bg-white">
+      <div className="flex flex-col justify-center items-center md:w-1/2 w-full bg-[#F9FAFB] px-8 md:px-20 py-12">
         <div className="mb-12">
           <Image
             src="/images/icons/logo.png"
@@ -54,7 +54,7 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full max-w-sm">
-          <h1 className="text-[28px] font-semibold text-[#DB7433] mb-10 text-center">
+          <h1 className="text-2xl md:text-[28px] font-semibold text-[#DB7433] mb-8 md:mb-10 text-center">
             Connexion
           </h1>
 
@@ -63,7 +63,6 @@ export default function LoginPage() {
             className="flex flex-col gap-5"
             aria-labelledby="login-form-title"
           >
-            {/* Label associé et champ focusable */}
             <label htmlFor="email" className="sr-only">
               Email
             </label>
@@ -126,14 +125,12 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Colonne droite : image */}
-      <div className="w-1/2 h-full flex items-center justify-center">
+      <div className="relative md:w-1/2 w-full h-full min-h-screen bg-white">
         <Image
           src="/images/login-page.png"
           alt="Illustration représentant la page de connexion"
-          width={1000}
-          height={2000}
-          className="object-cover"
+          fill
+          className="object-contain"
           priority
         />
       </div>

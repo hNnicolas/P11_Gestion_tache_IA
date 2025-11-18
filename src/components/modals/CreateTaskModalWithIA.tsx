@@ -3,11 +3,25 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { createTaskWithIAClient } from "@/app/actions/createTaskWithIAClient";
+import { updateTaskAction } from "@/app/actions/tasks/updateTaskAction";
 
 type Task = {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
+  status?: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
+  priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  project?: {
+    id: string;
+    name: string;
+    description: string | null;
+    ownerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  creatorId?: string;
+  assignees?: { userId: string }[];
+  comments?: any[];
   isNew?: boolean;
 };
 
@@ -26,6 +40,7 @@ export default function CreateModalIA({
   const [loading, setLoading] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [view, setView] = useState<"generate" | "list">("generate");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +91,7 @@ export default function CreateModalIA({
           ];
 
       setTasks((prev) => [...prev, ...newTasks]);
+
       setPrompt("");
       setView("list");
     } catch (err) {
@@ -139,9 +155,6 @@ export default function CreateModalIA({
           </button>
         </div>
 
-        {/* ==============================================
-             VUE 1 : GENERATION IA
-        =============================================== */}
         {view === "generate" && (
           <div className="flex flex-col justify-end flex-1">
             <div className="mt-auto bg-[#F9FAFB] rounded-[20px] p-3 flex items-center gap-2">
@@ -153,7 +166,6 @@ export default function CreateModalIA({
                 onChange={(e) => setPrompt(e.target.value)}
               />
 
-              {/* Bouton IA accesible au clavier */}
               <button
                 onClick={handleGenerate}
                 disabled={loading}
@@ -176,14 +188,8 @@ export default function CreateModalIA({
           </div>
         )}
 
-        {/* ==============================================
-             VUE 2 : LISTE DES TÂCHES
-        =============================================== */}
         {view === "list" && (
           <div className="flex flex-col h-full">
-            {" "}
-            {/* h-full pour occuper toute la modale */}
-            {/* LISTE SCROLLABLE */}
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 pb-4">
               {tasks.map((task) => (
                 <div
@@ -192,18 +198,20 @@ export default function CreateModalIA({
                 >
                   <input
                     className="w-full outline-none text-lg font-semibold mb-1"
-                    value={task.title}
+                    value={task.title || ""}
                     onChange={(e) =>
                       updateTask(task.id, "title", e.target.value)
                     }
+                    disabled={editingTaskId !== task.id}
                   />
 
                   <textarea
                     className="w-full outline-none text-sm text-gray-600 mb-4 resize-none"
-                    value={task.description}
+                    value={task.description || ""}
                     onChange={(e) =>
                       updateTask(task.id, "description", e.target.value)
                     }
+                    disabled={editingTaskId !== task.id}
                   />
 
                   <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -222,27 +230,69 @@ export default function CreateModalIA({
 
                     <span className="text-gray-300">|</span>
 
-                    <button className="flex items-center gap-1 hover:opacity-70">
+                    <button
+                      onClick={async () => {
+                        if (editingTaskId === task.id) {
+                          try {
+                            const updatedTask = await updateTaskAction(
+                              projectId!,
+                              task.id,
+                              {
+                                title: task.title,
+                                description: task.description || "",
+                              }
+                            );
+
+                            // 🔹 CAST pour correspondre au type Task
+                            const updatedTaskTyped: Task = {
+                              id: updatedTask.id,
+                              title: updatedTask.title,
+                              description: updatedTask.description || null,
+                              status: updatedTask.status as Task["status"],
+                              priority:
+                                updatedTask.priority as Task["priority"],
+                              project: updatedTask.project,
+                              creatorId: updatedTask.creatorId,
+                              assignees: updatedTask.assignees,
+                              comments: updatedTask.comments,
+                            };
+
+                            setTasks((prev) =>
+                              prev.map((t) =>
+                                t.id === updatedTaskTyped.id
+                                  ? updatedTaskTyped
+                                  : t
+                              )
+                            );
+
+                            setEditingTaskId(null);
+                          } catch (err) {
+                            console.error("Erreur sauvegarde tâche :", err);
+                          }
+                        } else {
+                          setEditingTaskId(task.id);
+                        }
+                      }}
+                      className="flex items-center gap-1 hover:opacity-70"
+                    >
                       <Image
                         src="/images/icons/edit.png"
                         width={14}
                         height={14}
                         alt="edit"
                       />
-                      Modifier
+                      {editingTaskId === task.id ? "Enregistrer" : "Modifier"}
                     </button>
                   </div>
                 </div>
               ))}
             </div>
-            {/* BOUTON AU-DESSUS DU FOOTER */}
             <button
               className="bg-black text-white rounded-full px-6 py-2 text-sm font-medium mb-3 hover:opacity-90 mx-auto"
               onClick={() => setView("generate")}
             >
               + Ajouter les tâches
             </button>
-            {/* FOOTER FIXE */}
             <div className="sticky bottom-0 bg-[#F9FAFB] rounded-[20px] p-3 flex items-center gap-2">
               <input
                 type="text"
