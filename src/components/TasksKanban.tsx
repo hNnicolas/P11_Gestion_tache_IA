@@ -40,7 +40,7 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
       {STATUS_ORDER.map((status) => (
         <div
           key={status}
-          className="flex-1 min-w-[300px] bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-5 shadow-sm"
+          className="flex-1 min-w-[300px] bg-[#FFFFFF] rounded-[10px] border border-[#E5E7EB] p-5 shadow-sm"
         >
           {/* Titre colonne */}
           <div className="flex items-center justify-between mb-4">
@@ -71,7 +71,7 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
                       {task.title}
                     </h4>
                     <span
-                      className={`text-[12px] px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 ${BADGE_STYLES[status]}`}
+                      className={`text-[12px] px-2.5 py-1 rounded-[10px] font-medium whitespace-nowrap shrink-0 ${BADGE_STYLES[status]}`}
                     >
                       {status}
                     </span>

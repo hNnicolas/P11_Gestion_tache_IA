@@ -67,10 +67,9 @@ export default function TaskCard({ task, onTaskView }: Props) {
         </div>
       </div>
 
-      {/* RIGHT BLOCK */}
-      <div className="flex flex-col items-start gap-4">
+      <div className="flex flex-col items-end justify-between h-full min-w-[130px] gap-4">
         <span
-          className={`inline-block px-3 py-1 rounded-full text-[13px] font-medium ${BADGE_STYLES[status]}`}
+          className={`inline-block px-4 py-1.5 rounded-[10px] mb-10 text-[11px] font-medium ${BADGE_STYLES[status]}`}
         >
           {status}
         </span>

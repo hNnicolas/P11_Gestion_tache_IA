@@ -65,14 +65,13 @@ export default function Header() {
 
   return (
     <header className="w-full shadow-sm bg-white transition-colors duration-200">
-      <div className="flex items-center justify-between h-20 px-8 max-w-7xl mx-auto">
-        {/* Logo */}
+      <div className="flex items-center justify-between h-20 px-2 md:px-6 lg:px-10 xl:px-16 w-full max-w-full mx-auto">
         <div className="shrink-0">
           <Link href="/">
             <img
               src="/images/icons/logo.png"
               alt="Logo"
-              className="h-10 w-auto"
+              className="h-10 w-auto ml-10"
             />
           </Link>
         </div>

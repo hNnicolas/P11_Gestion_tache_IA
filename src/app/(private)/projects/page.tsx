@@ -77,11 +77,12 @@ export default function ProjectsPage() {
 
   return (
     <div className="w-full bg-[#F9FAFB]">
-      <div className="max-w-7xl mx-auto px-8 py-6">
+      {/* Conteneur responsive avec padding horizontal */}
+      <div className="w-full max-w-[1550px] mx-auto px-4 md:px-6 lg:px-8 py-6">
         {/* Titre principal */}
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mb-2 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold mb-5 mt-8 ">Mes projets</h1>
+            <h1 className="text-2xl font-bold mb-5 mt-8">Mes projets</h1>
             <p
               className="text-sm mt-1 mb-10"
               style={{ color: "var(--color-text)" }}
@@ -91,7 +92,7 @@ export default function ProjectsPage() {
           </div>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-black text-white px-4 py-2 rounded-[10px] text-sm font-medium hover:opacity-90 transition"
+            className="bg-black text-white px-4 py-2 rounded-[10px] text-sm font-medium hover:opacity-90 transition mt-4 md:mt-0"
           >
             + Créer un projet
           </button>
@@ -100,10 +101,9 @@ export default function ProjectsPage() {
         {projects.length === 0 ? (
           <p className="text-gray-500">Aucun projet trouvé</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
             {projects.map((project: any) => {
               const progress = progressMap[project.id] ?? 0;
-
               const totalTasks =
                 project._count?.tasks || project.tasks?.length || 0;
               const completedTasks = Math.round((progress / 100) * totalTasks);
@@ -111,7 +111,7 @@ export default function ProjectsPage() {
               return (
                 <div
                   key={project.id}
-                  className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between"
+                  className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between cursor-pointer hover:shadow-md transition"
                   onClick={() => router.push(`/projects/${project.id}`)}
                 >
                   {/* Nom et description */}

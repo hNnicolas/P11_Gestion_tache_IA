@@ -19,6 +19,7 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
 
   const fullName = user.name || "";
   const [firstName, lastName] = fullName.split(" ");
+  const [view, setView] = useState<"LIST" | "KANBAN">("LIST");
 
   const handleSearchTasks = async () => {
     if (!searchQuery.trim()) {
@@ -40,15 +41,12 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
       }));
 
       setSearchResults((prev) => {
-        // Filtrer doublons
         const prevFiltered = prev.filter(
           (pt) => !normalizedTasks.some((t) => t.id === pt.id)
         );
-        // Les nouvelles tâches trouvées viennent en premier
         return [...normalizedTasks, ...prevFiltered];
       });
 
-      // Remettre le champ à zéro
       setSearchQuery("");
     } else {
       alert(result.message);
@@ -57,45 +55,70 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
 
   return (
     <div className="flex flex-col items-center bg-[#F9FAFB] min-h-screen py-10 pb-20">
-      <section className="w-[1215px]">
+      <section className="w-full max-w-[1500px] px-4 md:px-6 lg:px-8">
         <div className="flex items-start justify-between w-full">
           <div>
-            <h1 className="text-[--color-principal] font-semibold text-2xl">
+            <h1 className="text-[--color-principal] font-semibold text-2xl -ml-5">
               Tableau de bord
             </h1>
-            <p className="small-text mt-4 text-[--color-sous-texte]">
+            <p className="small-text mt-4 -ml-5 text-[--color-sous-texte]">
               Bonjour {firstName} {lastName}, voici un aperçu de vos projets et
               tâches
             </p>
+
+            <div className="flex items-center gap-4 mt-6 -ml-5">
+              <div
+                className={`flex items-center gap-2 px-4 py-2 rounded-[10px] cursor-pointer ${
+                  view === "LIST"
+                    ? "bg-[#FFE8D9] text-[#E48E59]"
+                    : "bg-[#FFFFFF] text-[#E48E59]"
+                }`}
+                onClick={() => setView("LIST")}
+              >
+                <img src="/images/icons/icon-liste.png" className="h-5 w-5" />
+                <span className="font-medium text-[#E48E59]!">Liste</span>
+              </div>
+
+              <div
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer ${
+                  view === "KANBAN"
+                    ? "bg-[#FFE8D9] text-[#E48E59]"
+                    : "bg-[#FFFFFF] text-[#E48E59]"
+                }`}
+                onClick={() => setView("KANBAN")}
+              >
+                <img src="/images/icons/icon-kanban.png" className="h-5 w-5" />
+                <span className="font-medium text-[#E48E59]!">Kanban</span>
+              </div>
+            </div>
           </div>
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-black text-white px-4 py-2 rounded-[10px] text-sm font-medium hover:opacity-90 transition"
+            className="bg-black text-white px-4 py-2 ml-5 rounded-[10px] text-sm font-medium hover:opacity-90 transition"
           >
             + Créer un projet
           </button>
         </div>
       </section>
 
-      <section className="p-6 bg-white rounded-[20px] border border-[#E5E7EB] w-[1215px] shadow-sm mt-6">
+      <section className="w-full max-w-[1500px] px-4 md:px-6 lg:px-8 py-6 bg-white rounded-[10px] border border-[#E5E7EB] shadow-sm mt-6">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col">
             <h2 className="font-semibold text-lg">Mes tâches assignées</h2>
             <span className="block text-[--color-sous-texte] small-text mt-1">
               Par ordre de priorité
             </span>
           </div>
 
-          {/* Barre de recherche */}
-          <div className="flex items-center border border-gray-200 rounded-[5px] px-3 py-1.5 bg-white">
+          <div className="flex items-center border border-gray-200 rounded-[7px] px-3 py-1.5 bg-white">
             <input
               type="text"
               placeholder="Rechercher une tâche..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearchTasks()}
-              className="outline-none text-sm text-gray-600 bg-transparent w-48"
+              className="outline-none text-sm text-gray-600 bg-transparent w-48 p-2"
             />
             <img
               src="/images/icons/search.png"
@@ -110,6 +133,8 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
           tasks={searchResults}
           project={null}
           currentUserId={user.id}
+          view={view}
+          setView={setView}
         />
       </section>
 
