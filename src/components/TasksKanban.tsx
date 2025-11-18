@@ -44,13 +44,12 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
         >
           {/* Titre colonne */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-[15px] text-[#111827]">
+            <h3 className="font-semibold text-[15px] text-[#111827] mb-6 flex items-center gap-2">
               {status}
+              <span className="text-[#6B7280]! bg-[#E5E7EB] px-4 py-1 rounded-[15px] text-[12px] font-medium min-w-6 text-center">
+                {tasksByStatus[status].length}
+              </span>
             </h3>
-            <span className="text-xs text-(--color-sous-texte)! font-medium">
-              {tasksByStatus[status].length} tâches
-              {tasksByStatus[status].length > 1 ? "s" : ""}
-            </span>
           </div>
 
           {/* Liste des tâches */}
@@ -63,7 +62,7 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
               tasksByStatus[status].map((task) => (
                 <div
                   key={task.id}
-                  className="bg-white rounded-xl border border-[#E5E7EB] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+                  className="bg-white rounded-xl border border-[#E5E7EB] p-6 min-h-[140px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
                 >
                   {/* Titre + Badge */}
                   <div className="flex items-center justify-between gap-2">
@@ -139,11 +138,9 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
                       </span>
                     </div>
                   </div>
-
-                  {/* Bouton Link Single Project */}
                   <button
                     onClick={() => onTaskView(task)}
-                    className="bg-black text-white text-[13px] rounded-md px-4 py-1.5"
+                    className="bg-black text-white text-[15px] rounded-lg px-6 py-3 font-medium mt-5 hover:opacity-90 transition-all duration-200"
                   >
                     Voir
                   </button>
