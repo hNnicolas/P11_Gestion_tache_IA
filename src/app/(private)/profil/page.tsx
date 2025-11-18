@@ -84,114 +84,119 @@ export default function ProfilPage() {
     );
 
   return (
-    <section
-      className="max-w-[1100px] mx-auto mt-10 bg-white p-12 rounded-[10px] border border-[#E5E7EB] shadow-sm"
-      aria-labelledby="profil-title"
-    >
-      <h2 id="profil-title" className="text-black font-semibold text-xl">
-        Mon compte
-      </h2>
-      <p className="mt-1 mb-10 text-[--color-sous-texte]">
-        {prenom} {nom}
-      </p>
-
-      <form
-        className="flex flex-col gap-6"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleUpdateAll();
-        }}
+    <div className="min-h-screen bg-[#F9FAFB] p-6 pb-50">
+      <section
+        className="max-w-[1500px] mx-auto mt-10 bg-white p-12 rounded-[10px] border border-[#E5E7EB] shadow-sm"
+        aria-labelledby="profil-title"
       >
-        {/* Nom */}
-        <div>
-          <label htmlFor="nom" className="small-text block mb-2">
-            Nom
-          </label>
-          <input
-            id="nom"
-            type="text"
-            className="w-full h-12 px-4 rounded-lg border border-[#E5E7EB]"
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            aria-label="Nom"
-            required
-          />
-        </div>
+        <h2 id="profil-title" className="text-black font-semibold text-xl">
+          Mon compte
+        </h2>
+        <p className="mt-1 mb-10 text-[--color-sous-texte]">
+          {prenom} {nom}
+        </p>
 
-        {/* Prénom */}
-        <div>
-          <label htmlFor="prenom" className="small-text block mb-2">
-            Prénom
-          </label>
-          <input
-            id="prenom"
-            type="text"
-            className="w-full h-12 px-4 rounded-lg border border-[#E5E7EB]"
-            value={prenom}
-            onChange={(e) => setPrenom(e.target.value)}
-            aria-label="Prénom"
-            required
-          />
-        </div>
-
-        {/* Email */}
-        <div>
-          <label htmlFor="email" className="small-text block mb-2">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            className="w-full h-12 px-4 rounded-lg border border-[#E5E7EB]"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-label="Email"
-            required
-          />
-        </div>
-
-        {/* Mot de passe */}
-        <fieldset
-          className="mt-8 flex flex-col gap-4"
-          aria-labelledby="password-fieldset"
+        <form
+          className="flex flex-col gap-6"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleUpdateAll();
+          }}
         >
+          {/* Nom */}
           <div>
-            <label htmlFor="currentPassword" className="small-text block mb-2">
-              Mot de passe actuel
+            <label htmlFor="nom" className="small-text block mb-2">
+              Nom
             </label>
             <input
-              id="currentPassword"
-              type="password"
+              id="nom"
+              type="text"
               className="w-full h-12 px-4 rounded-lg border border-[#E5E7EB]"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              aria-label="Mot de passe actuel"
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              aria-label="Nom"
+              required
             />
           </div>
 
+          {/* Prénom */}
           <div>
-            <label htmlFor="newPassword" className="small-text block mb-2">
-              Nouveau mot de passe
+            <label htmlFor="prenom" className="small-text block mb-2">
+              Prénom
             </label>
             <input
-              id="newPassword"
-              type="password"
+              id="prenom"
+              type="text"
               className="w-full h-12 px-4 rounded-lg border border-[#E5E7EB]"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              aria-label="Nouveau mot de passe"
+              value={prenom}
+              onChange={(e) => setPrenom(e.target.value)}
+              aria-label="Prénom"
+              required
             />
           </div>
-        </fieldset>
 
-        {/* Bouton unique pour tout mettre à jour */}
-        <button
-          type="submit"
-          className="mt-6 bg-black text-white px-6 py-3 rounded-lg small-text w-fit hover:bg-[#1c1c1c]"
-        >
-          Modifier les informations
-        </button>
-      </form>
-    </section>
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="small-text block mb-2">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              className="w-full h-12 px-4 rounded-lg border border-[#E5E7EB]"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-label="Email"
+              required
+            />
+          </div>
+
+          {/* Mot de passe */}
+          <fieldset
+            className="mt-8 flex flex-col gap-4"
+            aria-labelledby="password-fieldset"
+          >
+            <div>
+              <label
+                htmlFor="currentPassword"
+                className="small-text block mb-2"
+              >
+                Mot de passe actuel
+              </label>
+              <input
+                id="currentPassword"
+                type="password"
+                className="w-full h-12 px-4 rounded-lg border border-[#E5E7EB]"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                aria-label="Mot de passe actuel"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="newPassword" className="small-text block mb-2">
+                Nouveau mot de passe
+              </label>
+              <input
+                id="newPassword"
+                type="password"
+                className="w-full h-12 px-4 rounded-lg border border-[#E5E7EB]"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                aria-label="Nouveau mot de passe"
+              />
+            </div>
+          </fieldset>
+
+          {/* Bouton unique pour tout mettre à jour */}
+          <button
+            type="submit"
+            className="mt-6 bg-black text-white! px-6 py-3 rounded-lg small-text w-fit hover:bg-[#1c1c1c]"
+          >
+            Modifier les informations
+          </button>
+        </form>
+      </section>
+    </div>
   );
 }
