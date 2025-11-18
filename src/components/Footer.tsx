@@ -11,7 +11,7 @@ export default function Footer() {
       </div>
 
       {/* Texte */}
-      <p className="small-text text-[--color-sous-texte] text-center md:text-left mt-2 md:mt-0">
+      <p className="small-text text-[--color-sous-texte] mr-20 text-center md:text-left mt-2 md:mt-0 md:ml-4">
         Abricot 2025
       </p>
     </footer>

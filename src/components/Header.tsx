@@ -117,7 +117,7 @@ export default function Header() {
         {user && (
           <Link
             href="/profil"
-            className="flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold cursor-pointer transition-all duration-200 hover:opacity-80 bg-[#FFE8D9] text-[#D3580B]"
+            className="flex items-center justify-center w-12 h-12 mr-10 rounded-full text-base font-semibold cursor-pointer transition-all duration-200 hover:opacity-80 bg-[#FFE8D9] text-[#D3580B]"
           >
             {initials}
           </Link>
