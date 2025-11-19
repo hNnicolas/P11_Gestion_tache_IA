@@ -5,9 +5,9 @@ export type Role = "OWNER" | "ADMIN" | "CONTRIBUTOR";
 
 /**
  * Récupère le rôle de l'utilisateur dans un projet
- * @param userId - ID de l'utilisateur
- * @param projectId - ID du projet
- * @returns Role ou null si l'utilisateur n'a pas accès
+ * @param userId
+ * @param projectId
+ * @returns
  */
 export async function getUserProjectRole(
   userId: string | null | undefined,
@@ -38,9 +38,9 @@ export async function getUserProjectRole(
 
 /**
  * Vérifie si un utilisateur a accès à un projet
- * @param userId - ID de l'utilisateur
- * @param projectId - ID du projet
- * @returns true si l'utilisateur est propriétaire ou membre
+ * @param userId
+ * @param projectId
+ * @returns
  */
 export async function hasProjectAccess(
   userId: string | null | undefined,

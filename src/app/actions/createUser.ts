@@ -1,23 +1,27 @@
 // src/app/actions/createUser.ts
 "use client";
 
+import { validateRegisterData } from "@/app/utils/validation";
+import { ValidationError } from "@/app/utils/validation";
+
 export async function createUserAction(data: {
   email: string;
   name: string;
   password: string;
 }) {
-  const { email, name, password } = data;
-
-  if (!email || !name || !password) {
-    throw new Error("Tous les champs sont requis.");
+  // ✅ Validation frontend
+  const errors: ValidationError[] = validateRegisterData(data);
+  if (errors.length > 0) {
+    const message = errors.map((e) => `${e.field}: ${e.message}`).join("\n");
+    throw new Error(message);
   }
+
+  const { email, name, password } = data;
 
   // Appel du backend Next.js pour créer l'utilisateur
   const res = await fetch("/api/auth/register", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, name, password }),
   });
 
@@ -28,6 +32,5 @@ export async function createUserAction(data: {
   }
 
   console.log("Utilisateur créé via le backend :", json.user);
-
   return json.user;
 }

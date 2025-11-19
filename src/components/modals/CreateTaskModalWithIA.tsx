@@ -154,7 +154,6 @@ export default function CreateModalIA({
         },
       ]);
 
-      // Reset prompt et passage en vue liste
       setPrompt("");
       setView("list");
 
