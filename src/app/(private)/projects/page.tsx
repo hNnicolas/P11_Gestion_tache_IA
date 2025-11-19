@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { getProjectsAction } from "@/app/actions/getProjectsAction";
 import { getProjectsProgressAction } from "@/app/actions/getAssignedTasksAction";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
+import { deleteProjectAction } from "@/app/actions/projects/deleteProjectAction";
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -25,11 +26,11 @@ export default function ProjectsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1️⃣ Récupérer les projets
+        // Récupérer les projets
         const projectsData = await getProjectsAction();
         setProjects(projectsData);
 
-        // 2️⃣ Récupérer les progressions (par projet)
+        // Récupérer les progressions par projet
         const progressData = await getProjectsProgressAction();
         const progressObj = progressData.reduce(
           (acc, { projectId, progress }) => {
@@ -40,7 +41,7 @@ export default function ProjectsPage() {
         );
         setProgressMap(progressObj);
 
-        // 3️⃣ Collecte des utilisateurs
+        // Collecte des utilisateurs
         const users: { id: string; name: string; email: string }[] = [];
         projectsData.forEach((project: any) => {
           if (project.owner) users.push(project.owner);
@@ -48,7 +49,7 @@ export default function ProjectsPage() {
         });
         setAllUsers(Array.from(new Map(users.map((u) => [u.id, u])).values()));
 
-        // 4️⃣ Utilisateur courant
+        // Utilisateur courant
         if (projectsData.length > 0) {
           setCurrentUser({
             id: projectsData[0].owner.id,
@@ -73,13 +74,32 @@ export default function ProjectsPage() {
       : (parts[0][0] + parts[1][0]).toUpperCase();
   };
 
+  const handleDeleteProject = async (
+    projectId: string,
+    projectName: string
+  ) => {
+    if (!confirm(`Voulez-vous vraiment supprimer le projet "${projectName}" ?`))
+      return;
+
+    try {
+      const response = await deleteProjectAction(projectId);
+      if (response.success) {
+        setProjects((prev) => prev.filter((p) => p.id !== projectId));
+        alert(response.message);
+      } else {
+        alert(response.message || "Erreur lors de la suppression");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de la suppression du projet");
+    }
+  };
+
   if (loading) return <p>Chargement des projets...</p>;
 
   return (
     <div className="w-full bg-[#F9FAFB]">
-      {/* Conteneur responsive avec padding horizontal */}
       <div className="w-full max-w-[1550px] mx-auto px-4 md:px-6 lg:px-8 py-6">
-        {/* Titre principal */}
         <div className="flex justify-between items-center mb-2 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold mb-5 mt-8">Mes projets</h1>
@@ -111,7 +131,7 @@ export default function ProjectsPage() {
               return (
                 <div
                   key={project.id}
-                  className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between cursor-pointer hover:shadow-md transition"
+                  className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex flex-col justify-between cursor-pointer hover:shadow-md transition relative"
                   onClick={() => router.push(`/projects/${project.id}`)}
                 >
                   {/* Nom et description */}
@@ -125,7 +145,7 @@ export default function ProjectsPage() {
                     </p>
                   </div>
 
-                  {/* Barre de progression dynamique */}
+                  {/* Barre de progression */}
                   <div className="mt-5">
                     <div className="flex justify-between items-center mb-1">
                       <h3
@@ -214,6 +234,17 @@ export default function ProjectsPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Bouton Supprimer */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteProject(project.id, project.name);
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded hover:opacity-90 transition"
+                  >
+                    Supprimer
+                  </button>
                 </div>
               );
             })}

@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       path: "/",
       secure: false,
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 jours
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return res;

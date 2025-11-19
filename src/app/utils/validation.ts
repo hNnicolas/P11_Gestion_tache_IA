@@ -1,5 +1,6 @@
 export type ValidationError = { field: string; message: string };
 
+/* ------------------- Validators ------------------- */
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -8,6 +9,11 @@ export const isValidEmail = (email: string): boolean => {
 export const isValidPassword = (password: string): boolean => {
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
   return passwordRegex.test(password);
+};
+
+export const isValidDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return !isNaN(date.getTime());
 };
 
 /* ------------------- Validation Register ------------------- */
@@ -41,11 +47,25 @@ export const validateRegisterData = (data: {
   return errors;
 };
 
-export const isValidDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return !isNaN(date.getTime());
+/* ------------------- Validation Login ------------------- */
+export const validateLoginData = (data: {
+  email: string;
+  password: string;
+}): ValidationError[] => {
+  const errors: ValidationError[] = [];
+
+  if (!data.email)
+    errors.push({ field: "email", message: "L'email est requis" });
+  else if (!isValidEmail(data.email))
+    errors.push({ field: "email", message: "Format d'email invalide" });
+
+  if (!data.password)
+    errors.push({ field: "password", message: "Le mot de passe est requis" });
+
+  return errors;
 };
 
+/* ------------------- Validation Update Task ------------------- */
 export const validateUpdateTaskData = (data: {
   title?: string;
   description?: string;

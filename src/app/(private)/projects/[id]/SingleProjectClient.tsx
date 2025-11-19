@@ -9,6 +9,7 @@ import CreateTaskModalWithIA from "@/components/modals/CreateTaskModalWithIA";
 import { createTaskWithIAClient } from "@/app/actions/createTaskWithIAClient";
 import { createCommentAction } from "@/app/actions/comments/createCommentAction";
 import { searchTasksAction } from "@/app/actions/tasks/searchTasksAction";
+import { deleteTaskAction } from "@/app/actions/tasks/deleteTaskAction";
 
 type Task = {
   id: string;
@@ -477,7 +478,31 @@ export default function SingleProjectClient({ project }: { project: any }) {
                       width={50}
                       height={50}
                       alt="dot"
-                      className="ml-auto"
+                      className="ml-auto cursor-pointer"
+                      onClick={async () => {
+                        try {
+                          const result = await deleteTaskAction(
+                            project.id,
+                            task.id
+                          );
+
+                          if (result.success) {
+                            setTasks((prev) =>
+                              prev.filter((t) => t.id !== task.id)
+                            );
+                            console.log(
+                              `Tâche ${task.id} supprimée avec succès`
+                            );
+                          } else {
+                            alert(
+                              result.message || "Erreur lors de la suppression"
+                            );
+                          }
+                        } catch (err: any) {
+                          console.error("Erreur deleteTaskAction :", err);
+                          alert(err.message || "Erreur lors de la suppression");
+                        }
+                      }}
                     />
                   </header>
 

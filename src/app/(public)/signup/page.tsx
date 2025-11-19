@@ -20,7 +20,7 @@ export default function SignupPage() {
 
     try {
       await createUserAction({ email, name, password });
-      router.push("/"); // redirige vers le dashboard après inscription
+      router.push("/");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue");
     } finally {
