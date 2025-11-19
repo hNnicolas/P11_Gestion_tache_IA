@@ -6,7 +6,6 @@ const BACKEND_URL =
   process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export const getTaskAction = async (projectId: string, taskId: string) => {
-  // await cookies() car c'est une Promise
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
 

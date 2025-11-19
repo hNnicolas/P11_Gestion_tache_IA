@@ -30,6 +30,7 @@ type CreateModalIAProps = {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   projectId?: string;
+  onTaskCreated?: (prompt: string) => Promise<void>;
 };
 
 export default function CreateModalIA({
@@ -115,6 +116,60 @@ export default function CreateModalIA({
   };
 
   /* ----------- MISE À JOUR ----------- */
+  const handleAddTask = async () => {
+    if (!projectId || !prompt.trim()) return;
+
+    setLoading(true);
+
+    try {
+      // Appel à la route IA via la fonction client
+      const res = await createTaskWithIAClient(prompt, projectId);
+
+      if (!res.success) {
+        console.error("❌ Erreur création tâche IA :", res.message, res.error);
+        alert(res.message || "Erreur lors de la création de la tâche IA");
+        return;
+      }
+
+      const newTask = res.data?.task;
+      if (!newTask) {
+        console.warn("⚠️ Aucune tâche retournée par le serveur");
+        return;
+      }
+
+      // Ajout dans l'état local pour affichage immédiat
+      setTasks((prev) => [
+        ...prev,
+        {
+          id: newTask.id,
+          title: newTask.title,
+          description: newTask.description,
+          status: newTask.status as Task["status"],
+          priority: newTask.priority as Task["priority"],
+          project: newTask.project,
+          creatorId: newTask.creatorId,
+          assignees: newTask.assignees,
+          comments: newTask.comments,
+          isNew: true,
+        },
+      ]);
+
+      // Reset prompt et passage en vue liste
+      setPrompt("");
+      setView("list");
+
+      console.log("✅ Tâche IA ajoutée :", newTask);
+    } catch (err: any) {
+      console.error("Erreur création tâche IA :", err);
+      alert(
+        err?.message ||
+          "Une erreur est survenue lors de la création de la tâche IA."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateTask = (
     id: string,
     field: "title" | "description",
@@ -343,10 +398,11 @@ export default function CreateModalIA({
             </div>
             <button
               className="bg-black text-white rounded-full px-6 py-2 text-sm font-medium mb-3 hover:opacity-90 mx-auto"
-              onClick={() => setView("generate")}
+              onClick={handleAddTask}
             >
               + Ajouter les tâches
             </button>
+
             <div className="sticky bottom-0 bg-[#F9FAFB] rounded-[20px] p-3 flex items-center gap-2">
               <input
                 type="text"

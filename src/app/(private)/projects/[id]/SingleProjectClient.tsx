@@ -42,22 +42,28 @@ export default function SingleProjectClient({ project }: { project: any }) {
   // Callback pour récupérer la tâche générée par IA
   const handleTaskCreatedByIA = async (prompt: string) => {
     try {
-      const newTask = await createTaskWithIAClient(prompt);
+      const response = await createTaskWithIAClient(prompt);
 
-      // Normalisation : s'assurer que title et description sont des strings
+      if (!response.success || !response.data?.task) {
+        console.error(
+          "Erreur création tâche IA :",
+          response.message,
+          response.error
+        );
+        return;
+      }
+
+      // Récupère la tâche générée
+      const taskFromIA = response.data.task;
+
+      // Normalisation
       const normalizedTask: Task = {
-        id: Date.now().toString(),
-        title:
-          typeof newTask.title === "string"
-            ? newTask.title
-            : newTask.title.map((c: any) => c.text).join(""),
-        description:
-          typeof newTask.description === "string"
-            ? newTask.description
-            : newTask.description.map((c: any) => c.text).join(""),
+        id: taskFromIA.id,
+        title: taskFromIA.title,
+        description: taskFromIA.description || "",
         status: "A faire",
-        assignees: [],
-        comments: [],
+        assignees: taskFromIA.assignees ?? [],
+        comments: taskFromIA.comments ?? [],
       };
 
       setTasks((prev) => [normalizedTask, ...prev]);
@@ -706,6 +712,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
             isOpen={isIAModalOpen}
             setIsOpen={setIsIAModalOpen}
             projectId={project.id}
+            onTaskCreated={handleTaskCreatedByIA} // <-- ici
           />
         )}
       </div>

@@ -31,7 +31,7 @@ export default function CreateProjectModal({
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const users = await getUsers(); // retourne tous les utilisateurs
+        const users = await getUsers();
         setAllUsers(users);
       } catch (error) {
         console.error("Impossible de récupérer les utilisateurs", error);
