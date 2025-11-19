@@ -84,21 +84,41 @@ export default function SingleProjectClient({ project }: { project: any }) {
     string,
     { bg: string; text: string; label: string }
   > = {
-    "A faire": {
+    todo: {
       bg: "var(--color-tag1-bg)",
       text: "var(--color-tag1)",
-      label: "A faire",
+      label: "À faire",
     },
-    "En cours": {
+    "in progress": {
       bg: "var(--color-tag2-bg)",
       text: "var(--color-tag2)",
       label: "En cours",
     },
-    Terminées: {
+    done: {
       bg: "var(--color-tag3-bg)",
       text: "var(--color-tag3)",
-      label: "Terminées",
+      label: "Terminée",
     },
+  };
+
+  const statusLabelMap: Record<string, string> = {
+    TODO: "À faire",
+    "in progress": "En cours",
+    Done: "Terminée",
+  };
+
+  // Mapping des statuts DB -> statusColors keys
+  const normalizeStatusKey = (status: string) => {
+    switch (status) {
+      case "TODO":
+        return "todo";
+      case "in progress":
+        return "in progress";
+      case "Done":
+        return "done";
+      default:
+        return "todo";
+    }
   };
 
   const toggleComments = (taskId: string) => {
@@ -400,23 +420,10 @@ export default function SingleProjectClient({ project }: { project: any }) {
           {/* Liste des tâches */}
           <div className="flex flex-col gap-4">
             {tasks.map((task: any) => {
-              const mapStatusToKey = (status: string) => {
-                switch (status) {
-                  case "A faire":
-                    return "TODO";
-                  case "En cours":
-                    return "in progress";
-                  case "Terminées":
-                    return "Done";
-                  default:
-                    return status;
-                }
-              };
-              const statusKey = mapStatusToKey(task.status);
-              const taskStatus = statusColors[statusKey] || {
+              const taskStatus = statusColors[task.status] || {
                 bg: "var(--color-tag1-bg)",
                 text: "var(--color-tag1)",
-                label: "A faire",
+                label: task.status,
               };
 
               return (
@@ -437,11 +444,15 @@ export default function SingleProjectClient({ project }: { project: any }) {
                       <span
                         className="text-xs px-2 py-0.5 rounded-full font-medium"
                         style={{
-                          backgroundColor: taskStatus.bg,
-                          color: taskStatus.text,
+                          backgroundColor:
+                            statusColors[normalizeStatusKey(task.status)]?.bg ||
+                            "var(--color-tag1-bg)",
+                          color:
+                            statusColors[normalizeStatusKey(task.status)]
+                              ?.text || "var(--color-tag1)",
                         }}
                       >
-                        {taskStatus.label}
+                        {statusLabelMap[task.status] || task.status}
                       </span>
                     </div>
 

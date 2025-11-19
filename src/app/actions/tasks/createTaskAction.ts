@@ -74,6 +74,6 @@ export const createTaskAction = async (
     },
   });
 
-  // console.log("✅ Tâche créée avec succès !", task);
+  console.log("✅ Tâche créée avec succès !", task);
   return task;
 };
