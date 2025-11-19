@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendSuccess, sendError } from "@/app/utils/response";
 
 const apiKey = process.env.MISTRAL_API_KEY;
 if (!apiKey) throw new Error("❌ MISTRAL_API_KEY manquant dans .env.local");
@@ -65,7 +66,7 @@ async function callMistral(model: string, prompt: string) {
         15000
       );
       return response;
-    } catch (err) {
+    } catch {
       await new Promise((r) => setTimeout(r, 300 * attempt));
     }
   }
@@ -80,20 +81,22 @@ export async function POST(req: NextRequest) {
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
+      return NextResponse.json(sendError("JSON invalide", undefined, 400), {
+        status: 400,
+      });
     }
 
     const { prompt, projectId, assigneeIds = [] } = parsed;
 
     if (!prompt || typeof prompt !== "string")
       return NextResponse.json(
-        { error: "Prompt manquant ou invalide" },
+        sendError("Prompt manquant ou invalide", undefined, 400),
         { status: 400 }
       );
 
     if (!projectId || typeof projectId !== "string")
       return NextResponse.json(
-        { error: "projectId manquant" },
+        sendError("projectId manquant", undefined, 400),
         { status: 400 }
       );
 
@@ -102,7 +105,9 @@ export async function POST(req: NextRequest) {
       where: { id: projectId },
     });
     if (!project)
-      return NextResponse.json({ error: "Projet inexistant" }, { status: 404 });
+      return NextResponse.json(sendError("Projet inexistant", undefined, 404), {
+        status: 404,
+      });
 
     // Création ou récupération du SYSTEM user
     let systemUser = await prisma.user.findUnique({ where: { id: "SYSTEM" } });
@@ -130,9 +135,9 @@ export async function POST(req: NextRequest) {
       try {
         response = await callMistral(
           model,
-          `Génère une tâche claire et concise. Format = 
-- Titre
-- Description
+          `Génère une tâche claire et concise.
+La première ligne sera le titre et le reste la description.
+⚠️ Ne mets aucun astérisque, aucun Markdown, aucun "Titre:" ou "Description:".
 Sujet : ${prompt}`
         );
         if (response.ok) break;
@@ -141,7 +146,11 @@ Sujet : ${prompt}`
 
     if (!response || !response.ok)
       return NextResponse.json(
-        { error: "Impossible de générer une tâche via Mistral" },
+        sendError(
+          "Impossible de générer une tâche via Mistral",
+          undefined,
+          502
+        ),
         { status: 502 }
       );
 
@@ -170,11 +179,14 @@ Sujet : ${prompt}`
       include: { assignees: true, comments: true },
     });
 
-    return NextResponse.json({ task });
-  } catch (err: any) {
-    console.error("🔥 ERREUR GLOBALE :", err);
+    // Retourne un ApiResponse complet
     return NextResponse.json(
-      { error: err?.message || "Erreur serveur" },
+      sendSuccess("Tâche IA créée avec succès", { task })
+    );
+  } catch (err: any) {
+    console.error("ERREUR GLOBALE :", err);
+    return NextResponse.json(
+      sendError(err?.message || "Erreur serveur", undefined, 500),
       { status: 500 }
     );
   }

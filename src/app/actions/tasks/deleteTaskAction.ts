@@ -1,33 +1,44 @@
 "use server";
 
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { verifyToken } from "@/app/utils/auth";
+import { hasProjectAccess, canModifyTasks } from "@/app/utils/permissions";
+import {
+  sendSuccess,
+  sendError,
+  sendAuthError,
+  sendServerError,
+} from "@/app/utils/response";
 
-const BACKEND_URL =
-  process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+export async function deleteTaskAction(projectId: string, taskId: string) {
+  try {
+    const authToken = (await cookies()).get("auth_token")?.value;
+    if (!authToken) return sendAuthError("Non authentifié");
 
-export const deleteTaskAction = async (projectId: string, taskId: string) => {
-  // await cookies() car c'est une Promise
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
+    const user = await verifyToken(authToken);
+    if (!user) return sendAuthError("Token invalide");
 
-  if (!token) throw new Error("Utilisateur non authentifié");
+    const canAccess = await hasProjectAccess(user.userId, projectId);
+    if (!canAccess) return sendError("Accès refusé", "Forbidden", 403);
 
-  const res = await fetch(
-    `${BACKEND_URL}/projects/${projectId}/tasks/${taskId}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+    const canEdit = await canModifyTasks(user.userId, projectId);
+    if (!canEdit) return sendError("Permission refusée", "Forbidden", 403);
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(
-      errorData.message || "Erreur lors de la suppression de la tâche"
+    const task = await prisma.task.findFirst({
+      where: { id: taskId, projectId },
+    });
+    if (!task) return sendError("Tâche introuvable", "Not Found", 404);
+
+    await prisma.task.delete({ where: { id: taskId } });
+
+    console.log(
+      `[TASK DELETE SUCCESS] taskId=${taskId} projectId=${projectId} userId=${user.userId}`
     );
-  }
 
-  return true;
-};
+    return sendSuccess("Tâche supprimée avec succès");
+  } catch (err: any) {
+    console.error("deleteTaskAction error:", err);
+    return sendServerError("Erreur interne du serveur", err.message);
+  }
+}

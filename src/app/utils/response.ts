@@ -1,93 +1,76 @@
-import { Response } from "express";
-import { ApiResponse } from "@/lib/prisma";
+// Compatible Server Actions et API routes sans Express
 
-/**
- * Envoie une réponse de succès
- * @param res - L'objet Response d'Express
- * @param message - Le message de succès
- * @param data - Les données à envoyer
- * @param statusCode - Le code de statut HTTP (défaut: 200)
- */
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data?: T;
+  error?: string;
+  statusCode?: number;
+}
+
+// ---- Succès ----
 export const sendSuccess = <T>(
-  res: Response,
   message: string,
   data?: T,
   statusCode: number = 200
-): void => {
-  const response: ApiResponse<T> = {
+): ApiResponse<T> => {
+  return {
     success: true,
     message,
     data,
+    statusCode,
   };
-
-  res.status(statusCode).json(response);
 };
 
-/**
- * Envoie une réponse d'erreur
- * @param res - L'objet Response d'Express
- * @param message - Le message d'erreur
- * @param error - Le détail de l'erreur
- * @param statusCode - Le code de statut HTTP (défaut: 400)
- */
+// ---- Erreur générale ----
 export const sendError = (
-  res: Response,
   message: string,
   error?: string,
   statusCode: number = 400
-): void => {
-  const response: ApiResponse = {
+): ApiResponse => {
+  return {
     success: false,
     message,
     error,
+    statusCode,
   };
-
-  res.status(statusCode).json(response);
 };
 
-/**
- * Envoie une réponse de validation d'erreur
- * @param res - L'objet Response d'Express
- * @param message - Le message d'erreur
- * @param errors - Les erreurs de validation
- */
+// ---- Erreur de validation ----
 export const sendValidationError = (
-  res: Response,
   message: string,
   errors: any[]
-): void => {
-  const response: ApiResponse = {
+): ApiResponse => {
+  return {
     success: false,
     message,
     error: "Validation failed",
     data: { errors },
+    statusCode: 400,
   };
-
-  res.status(400).json(response);
 };
 
-/**
- * Envoie une réponse d'erreur serveur interne
- * @param res - L'objet Response d'Express
- * @param message - Le message d'erreur
- * @param error - Le détail de l'erreur
- */
+// ---- Erreur serveur ----
 export const sendServerError = (
-  res: Response,
   message: string = "Erreur interne du serveur",
   error?: string
-): void => {
-  sendError(res, message, error, 500);
+): ApiResponse => {
+  return {
+    success: false,
+    message,
+    error,
+    statusCode: 500,
+  };
 };
 
-/**
- * Envoie une réponse d'erreur d'authentification
- * @param res - L'objet Response d'Express
- * @param message - Le message d'erreur
- */
+// ---- Erreur d'authentification ----
 export const sendAuthError = (
-  res: Response,
   message: string = "Non autorisé"
-): void => {
-  sendError(res, message, "Authentication failed", 401);
+): ApiResponse => {
+  return {
+    success: false,
+    message,
+    error: "Authentication failed",
+    statusCode: 401,
+  };
 };

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { createTaskWithIAClient } from "@/app/actions/createTaskWithIAClient";
 import { updateTaskAction } from "@/app/actions/tasks/updateTaskAction";
+import { deleteTaskAction } from "@/app/actions/tasks/deleteTaskAction";
 
 type Task = {
   id: string;
@@ -72,10 +73,22 @@ export default function CreateModalIA({
     setLoading(true);
 
     try {
-      const data = await createTaskWithIAClient(prompt, projectId);
+      const res = await createTaskWithIAClient(prompt, projectId);
 
-      const newTasks = Array.isArray(data.task)
-        ? data.task.map((t: any) => ({
+      if (!res.success) {
+        console.error("❌ Erreur création tâche IA :", res.message, res.error);
+        alert(res.message);
+        return;
+      }
+
+      const tasksData = res.data?.task;
+      if (!tasksData) {
+        console.warn("⚠️ Aucune tâche retournée par le serveur");
+        return;
+      }
+
+      const newTasks = Array.isArray(tasksData)
+        ? tasksData.map((t: any) => ({
             id: t.id,
             title: t.title,
             description: t.description,
@@ -83,19 +96,19 @@ export default function CreateModalIA({
           }))
         : [
             {
-              id: data.task.id,
-              title: data.task.title,
-              description: data.task.description,
+              id: tasksData.id,
+              title: tasksData.title,
+              description: tasksData.description,
               isNew: true,
             },
           ];
 
       setTasks((prev) => [...prev, ...newTasks]);
-
       setPrompt("");
       setView("list");
     } catch (err) {
       console.error("Erreur génération IA :", err);
+      alert("Une erreur est survenue lors de la création de la tâche IA.");
     } finally {
       setLoading(false);
     }
@@ -108,7 +121,7 @@ export default function CreateModalIA({
     value: string
   ) => {
     setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
+      prev.map((task) => (task.id === id ? { ...task, [field]: value } : task))
     );
   };
 
@@ -216,7 +229,34 @@ export default function CreateModalIA({
 
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <button
-                      onClick={() => deleteTask(task.id)}
+                      onClick={async () => {
+                        if (!projectId) return;
+                        try {
+                          // Appel à l'action serveur pour supprimer la tâche
+                          const res = await deleteTaskAction(
+                            projectId,
+                            task.id
+                          );
+
+                          if (!res.success) {
+                            console.error(
+                              "Erreur suppression tâche :",
+                              res.message,
+                              res.error
+                            );
+                            alert(res.message);
+                            return;
+                          }
+
+                          // Mise à jour de l'état local
+                          deleteTask(task.id);
+                        } catch (err) {
+                          console.error("Erreur suppression tâche :", err);
+                          alert(
+                            "Une erreur est survenue lors de la suppression."
+                          );
+                        }
+                      }}
                       className="flex items-center gap-1 hover:opacity-70"
                     >
                       <Image
@@ -229,12 +269,11 @@ export default function CreateModalIA({
                     </button>
 
                     <span className="text-gray-300">|</span>
-
                     <button
                       onClick={async () => {
                         if (editingTaskId === task.id) {
                           try {
-                            const updatedTask = await updateTaskAction(
+                            const res = await updateTaskAction(
                               projectId!,
                               task.id,
                               {
@@ -242,6 +281,18 @@ export default function CreateModalIA({
                                 description: task.description || "",
                               }
                             );
+
+                            if (!res.success) {
+                              console.error(
+                                "Erreur serveur :",
+                                res.message,
+                                res.error
+                              );
+                              alert(res.message);
+                              return;
+                            }
+
+                            const updatedTask = res.data;
 
                             // 🔹 CAST pour correspondre au type Task
                             const updatedTaskTyped: Task = {
@@ -268,6 +319,9 @@ export default function CreateModalIA({
                             setEditingTaskId(null);
                           } catch (err) {
                             console.error("Erreur sauvegarde tâche :", err);
+                            alert(
+                              "Une erreur est survenue lors de la mise à jour."
+                            );
                           }
                         } else {
                           setEditingTaskId(task.id);
