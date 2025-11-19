@@ -84,21 +84,34 @@ export default function SingleProjectClient({ project }: { project: any }) {
     string,
     { bg: string; text: string; label: string }
   > = {
-    todo: {
+    TODO: {
       bg: "var(--color-tag1-bg)",
       text: "var(--color-tag1)",
-      label: "À faire",
+      label: "A faire",
     },
-    "in progress": {
+    IN_PROGRESS: {
       bg: "var(--color-tag2-bg)",
       text: "var(--color-tag2)",
       label: "En cours",
     },
-    done: {
+    DONE: {
       bg: "var(--color-tag3-bg)",
       text: "var(--color-tag3)",
-      label: "Terminée",
+      label: "Terminées",
     },
+  };
+
+  const mapDisplayToKey = (displayStatus: string) => {
+    switch (displayStatus) {
+      case "A faire":
+        return "TODO";
+      case "En cours":
+        return "IN_PROGRESS";
+      case "Terminées":
+        return "DONE";
+      default:
+        return "TODO";
+    }
   };
 
   const statusLabelMap: Record<string, string> = {
@@ -111,13 +124,16 @@ export default function SingleProjectClient({ project }: { project: any }) {
   const normalizeStatusKey = (status: string) => {
     switch (status) {
       case "TODO":
-        return "todo";
+      case "A faire":
+        return "TODO";
       case "in progress":
-        return "in progress";
+      case "En cours":
+        return "IN_PROGRESS";
       case "Done":
-        return "done";
+      case "Terminées":
+        return "DONE";
       default:
-        return "todo";
+        return "TODO";
     }
   };
 
@@ -363,7 +379,9 @@ export default function SingleProjectClient({ project }: { project: any }) {
                     role="listbox"
                   >
                     {statusOptions.map((status) => {
-                      const colors = statusColors[status];
+                      const key = mapDisplayToKey(status);
+                      const colors = statusColors[key];
+
                       return (
                         <li
                           key={status}
@@ -420,12 +438,6 @@ export default function SingleProjectClient({ project }: { project: any }) {
           {/* Liste des tâches */}
           <div className="flex flex-col gap-4">
             {tasks.map((task: any) => {
-              const taskStatus = statusColors[task.status] || {
-                bg: "var(--color-tag1-bg)",
-                text: "var(--color-tag1)",
-                label: task.status,
-              };
-
               return (
                 <article
                   key={task.id}
@@ -445,14 +457,12 @@ export default function SingleProjectClient({ project }: { project: any }) {
                         className="text-xs px-2 py-0.5 rounded-full font-medium"
                         style={{
                           backgroundColor:
-                            statusColors[normalizeStatusKey(task.status)]?.bg ||
-                            "var(--color-tag1-bg)",
+                            statusColors[normalizeStatusKey(task.status)].bg,
                           color:
-                            statusColors[normalizeStatusKey(task.status)]
-                              ?.text || "var(--color-tag1)",
+                            statusColors[normalizeStatusKey(task.status)].text,
                         }}
                       >
-                        {statusLabelMap[task.status] || task.status}
+                        {statusColors[normalizeStatusKey(task.status)].label}
                       </span>
                     </div>
 
@@ -554,59 +564,58 @@ export default function SingleProjectClient({ project }: { project: any }) {
 
                   <hr className="my-3 border-gray-200" />
 
-                  {task.comments?.length > 0 && (
-                    <div className="mt-3">
-                      <button
-                        onClick={() => toggleComments(task.id)}
-                        className="flex items-center justify-between w-full text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none"
+                  <div className="mt-3">
+                    <button
+                      onClick={() => toggleComments(task.id)}
+                      className="flex items-center justify-between w-full text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none"
+                    >
+                      <span style={{ color: "#575757" }}>
+                        Commentaires ({task.comments?.length || 0})
+                      </span>
+                      <svg
+                        className={`w-4 h-4 ml-2 transition-transform ${
+                          expandedComments[task.id] ? "rotate-180" : ""
+                        }`}
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
                       >
-                        <span style={{ color: "#575757" }}>
-                          Commentaires ({task.comments.length})
-                        </span>
-                        <svg
-                          className={`w-4 h-4 ml-2 transition-transform ${
-                            expandedComments[task.id] ? "rotate-180" : ""
-                          }`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4 4.7a.75.75 0 01-1.14 0l-4-4.7a.75.75 0 01.02-1.06z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </button>
-                      {expandedComments[task.id] && (
-                        <div className="mt-2">
-                          <Comments
-                            initialComments={task.comments || []}
-                            taskId={task.id}
-                            projectId={project.id}
-                            currentUser={{
-                              userId: project.owner.id,
-                              name: project.owner.name,
-                            }}
-                            onNewComment={(comment) =>
-                              setTasks((prev) =>
-                                prev.map((t) =>
-                                  t.id === task.id
-                                    ? {
-                                        ...t,
-                                        comments: [
-                                          ...(t.comments || []),
-                                          comment,
-                                        ],
-                                      }
-                                    : t
-                                )
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4 4.7a.75.75 0 01-1.14 0l-4-4.7a.75.75 0 01.02-1.06z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+
+                    {expandedComments[task.id] && (
+                      <div className="mt-2">
+                        <Comments
+                          initialComments={task.comments || []}
+                          taskId={task.id}
+                          projectId={project.id}
+                          currentUser={{
+                            userId: project.owner.id,
+                            name: project.owner.name,
+                          }}
+                          onNewComment={(comment) =>
+                            setTasks((prev) =>
+                              prev.map((t) =>
+                                t.id === task.id
+                                  ? {
+                                      ...t,
+                                      comments: [
+                                        ...(t.comments || []),
+                                        comment,
+                                      ],
+                                    }
+                                  : t
                               )
-                            }
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
+                            )
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
                 </article>
               );
             })}
@@ -619,9 +628,20 @@ export default function SingleProjectClient({ project }: { project: any }) {
           setIsOpen={setIsCreateModalOpen}
           project={project}
           currentUserId={project.currentUserId || project.owner.id}
-          onTaskCreated={(newTask: any) =>
-            setTasks((prev) => [newTask, ...prev])
-          }
+          onTaskCreated={(newTask: any) => {
+            const taskWithColors = {
+              ...newTask,
+              comments: newTask.comments ?? [],
+              bgColor: newTask.color,
+              textColor: newTask.text,
+            };
+
+            setTasks((prev) => [taskWithColors, ...prev]);
+
+            window.dispatchEvent(
+              new CustomEvent("taskCreated", { detail: taskWithColors })
+            );
+          }}
         />
 
         <EditProjectModal

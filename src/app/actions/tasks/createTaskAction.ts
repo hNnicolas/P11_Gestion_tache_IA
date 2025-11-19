@@ -28,6 +28,43 @@ const mapStatusToDB = (status?: "A faire" | "En cours" | "Terminées") => {
   }
 };
 
+// Mapping du statut -> couleur
+const statusColorMap: Record<string, string> = {
+  "A faire": "var(--color-tag1)", // #f36b6b
+  "En cours": "var(--color-tag2)", // #ebb252
+  Terminées: "var(--color-tag3)", // #26ad60
+};
+
+// Helper pour récupérer les assignés formatés
+const getTaskAssignments = async (taskId: string) => {
+  const assignees = await prisma.taskAssignee.findMany({
+    where: { taskId },
+    include: { user: { select: { id: true, name: true, email: true } } },
+  });
+
+  return assignees.map((assignee) => ({
+    id: assignee.id,
+    assignedAt: assignee.assignedAt,
+    user: assignee.user,
+  }));
+};
+
+// Helper pour récupérer les commentaires
+const getTaskComments = async (taskId: string) => {
+  const comments = await prisma.comment.findMany({
+    where: { taskId },
+    include: { author: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  return comments.map((c) => ({
+    id: c.id,
+    content: c.content,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+    author: c.author,
+  }));
+};
+
 export const createTaskAction = async (
   projectId: string,
   data: CreateTaskInput,
@@ -42,8 +79,6 @@ export const createTaskAction = async (
   const userId = decoded?.sub || decoded?.userId;
   if (!userId) throw new Error("Impossible de déterminer l'utilisateur");
 
-  // console.log("🔹 UserId extrait du token:", userId);
-
   const allowed = await canCreateTasks(userId, projectId);
   if (!allowed)
     throw new Error("Vous n'avez pas la permission de créer une tâche.");
@@ -53,7 +88,12 @@ export const createTaskAction = async (
     projectMembers.some((member) => member.userId === id)
   );
 
-  // Création de la tâche avec mapping du statut
+  // Si aucun assigné sélectionné, assigner automatiquement à l'utilisateur connecté
+  if (validAssigneeIds.length === 0) {
+    validAssigneeIds = [userId];
+  }
+
+  // Création de la tâche
   const task = await prisma.task.create({
     data: {
       title: data.title,
@@ -64,16 +104,23 @@ export const createTaskAction = async (
       projectId,
       creatorId: userId,
       assignees: {
-        create: validAssigneeIds.map((id) => ({
-          userId: id,
-        })),
+        create: validAssigneeIds.map((id) => ({ userId: id })),
       },
-    },
-    include: {
-      assignees: { include: { user: true } },
     },
   });
 
-  console.log("✅ Tâche créée avec succès !", task);
-  return task;
+  // Récupérer assignés et commentaires
+  const assigneesFormatted = await getTaskAssignments(task.id);
+  const commentsFormatted = await getTaskComments(task.id);
+
+  const color = data.status
+    ? statusColorMap[data.status]
+    : statusColorMap["A faire"];
+
+  return {
+    ...task,
+    assignees: assigneesFormatted,
+    comments: commentsFormatted,
+    color,
+  };
 };

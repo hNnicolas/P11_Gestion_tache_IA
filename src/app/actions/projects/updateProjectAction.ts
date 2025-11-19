@@ -44,7 +44,6 @@ export async function updateProjectAction(input: UpdateProjectInput) {
 
   // console.log("Projet après mise à jour:", updatedProject);
 
-  // Revalidation pour ISR si besoin
   revalidatePath(`/projects/${projectId}`);
 
   return updatedProject;

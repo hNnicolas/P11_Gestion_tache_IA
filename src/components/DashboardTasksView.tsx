@@ -25,7 +25,6 @@ export default function DashboardTasksView({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [taskList, setTaskList] = useState<ITask[]>(tasks);
 
-  // Synchronisation si search change
   useEffect(() => {
     setTaskList(tasks);
   }, [tasks]);

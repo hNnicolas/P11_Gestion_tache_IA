@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import DashboardTasksView from "@/components/DashboardTasksView";
 import { UserForClient } from "@/app/actions/users/getAllUsersAction";
 import { searchTasksAction } from "@/app/actions/tasks/searchTasksAction";
+import { getAssignedTasksAction } from "@/app/actions/tasks/getAssignedTasksAction";
 
 type Props = {
   user: { id: string; name: string; email: string };
@@ -12,14 +13,46 @@ type Props = {
   allUsers: UserForClient[];
 };
 
-export default function DashboardClient({ user, tasks, allUsers }: Props) {
+export default function DashboardClient({ user, allUsers }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState(tasks);
+  const [view, setView] = useState<"LIST" | "KANBAN">("LIST");
 
   const fullName = user.name || "";
   const [firstName, lastName] = fullName.split(" ");
-  const [view, setView] = useState<"LIST" | "KANBAN">("LIST");
+
+  // 🔄 Récupère les tâches assignées
+  const refreshTasks = async () => {
+    try {
+      const assignedTasks = await getAssignedTasksAction();
+      console.log(
+        "🔄 Tâches récupérées :",
+        assignedTasks.map((t) => t.id)
+      );
+      setTasks(assignedTasks);
+      setSearchResults(assignedTasks);
+    } catch (err) {
+      console.error("Erreur récupération tâches assignées :", err);
+    }
+  };
+
+  // ▶️ Charge les tâches au montage
+  useEffect(() => {
+    refreshTasks();
+
+    // Écoute les nouvelles tâches globales
+    const handleNewTask = (e: CustomEvent) => {
+      setTasks((prev) => [e.detail, ...prev]);
+      setSearchResults((prev) => [e.detail, ...prev]);
+    };
+    window.addEventListener("taskCreated", handleNewTask as EventListener);
+
+    return () => {
+      window.removeEventListener("taskCreated", handleNewTask as EventListener);
+    };
+  }, []);
 
   const handleSearchTasks = async () => {
     if (!searchQuery.trim()) {
@@ -55,6 +88,7 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
 
   return (
     <div className="flex flex-col items-center bg-[#F9FAFB] min-h-screen py-10 pb-20">
+      {/* === HEADER === */}
       <section className="w-full max-w-[1500px] px-4 md:px-6 lg:px-8">
         <div className="flex items-start justify-between w-full">
           <div>
@@ -67,6 +101,7 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
             </p>
 
             <div className="flex items-center gap-4 mt-6 -ml-5">
+              {/* Toggle Liste / Kanban */}
               <div
                 className={`flex items-center gap-2 px-4 py-2 rounded-[10px] cursor-pointer ${
                   view === "LIST"
@@ -78,7 +113,6 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
                 <img src="/images/icons/icon-liste.png" className="h-5 w-5" />
                 <span className="font-medium text-[#E48E59]!">Liste</span>
               </div>
-
               <div
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer ${
                   view === "KANBAN"
@@ -102,6 +136,7 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
         </div>
       </section>
 
+      {/* === TÂCHES === */}
       <section className="w-full max-w-[1500px] px-4 md:px-6 lg:px-8 py-6 bg-white rounded-[10px] border border-[#E5E7EB] shadow-sm mt-6">
         <div className="flex items-center justify-between mb-2">
           <div className="flex flex-col">
@@ -138,15 +173,17 @@ export default function DashboardClient({ user, tasks, allUsers }: Props) {
         />
       </section>
 
+      {/* === MODAL CRÉATION PROJET === */}
       {isModalOpen && (
         <CreateProjectModal
           isOpen={isModalOpen}
           setIsOpen={setIsModalOpen}
           currentUser={user}
           allUsers={allUsers}
-          onProjectCreated={(newProject) =>
-            console.log("Projet créé :", newProject)
-          }
+          onProjectCreated={async () => {
+            console.log("Projet créé, refresh des tâches…");
+            await refreshTasks();
+          }}
         />
       )}
     </div>

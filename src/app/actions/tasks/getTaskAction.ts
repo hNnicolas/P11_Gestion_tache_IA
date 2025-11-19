@@ -1,32 +1,68 @@
 "use server";
 
 import { cookies } from "next/headers";
-
-const BACKEND_URL =
-  process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+import { prisma } from "@/lib/prisma";
+import { verifyToken } from "@/app/utils/auth";
+import { hasProjectAccess } from "@/app/utils/permissions";
+import { getTaskAssignments } from "@/app/utils/taskAssigments";
+import { getTaskComments } from "@/app/utils/taskComments";
+import { sendError, sendSuccess } from "@/app/utils/response";
 
 export const getTaskAction = async (projectId: string, taskId: string) => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-
-  if (!token) throw new Error("Utilisateur non authentifié");
-
-  const res = await fetch(
-    `${BACKEND_URL}/projects/${projectId}/tasks/${taskId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  try {
+    // ---- 1. Auth via cookies ----
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    if (!token) {
+      return sendError("Utilisateur non authentifié", "UNAUTHORIZED", 401);
     }
-  );
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(
-      errorData.message || "Erreur lors de la récupération de la tâche"
-    );
+    const user = await verifyToken(token);
+    if (!user) {
+      return sendError("Token invalide", "UNAUTHORIZED", 401);
+    }
+
+    const userId = user.userId;
+
+    // ---- 2. Vérification permission accès au projet ----
+    const access = await hasProjectAccess(userId, projectId);
+    if (!access) {
+      return sendError("Accès refusé au projet", "FORBIDDEN", 403);
+    }
+
+    // ---- 3. Vérifier existence tâche ----
+    const task = await prisma.task.findFirst({
+      where: { id: taskId, projectId },
+      include: {
+        creator: {
+          select: { id: true, email: true, name: true },
+        },
+        project: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    if (!task) {
+      return sendError("Tâche non trouvée", "TASK_NOT_FOUND", 404);
+    }
+
+    // ---- 4. Assignations & commentaires ----
+    const assignees = await getTaskAssignments(task.id);
+    const comments = await getTaskComments(task.id);
+
+    const taskWithDetails = {
+      ...task,
+      assignees,
+      comments,
+    };
+
+    // ---- 5. Réponse complète ----
+    return sendSuccess("Tâche récupérée avec succès", {
+      task: taskWithDetails,
+    });
+  } catch (err) {
+    console.error("Erreur getTaskAction:", err);
+    return sendError("Erreur lors de la récupération de la tâche");
   }
-
-  const responseData = await res.json();
-  return responseData.data.task;
 };

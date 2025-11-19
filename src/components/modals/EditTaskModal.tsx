@@ -111,8 +111,7 @@ export default function EditTaskModal({
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const updatedTaskRaw = await updateTaskAction(
-        currentUserId,
+      const updatedTaskResponse = await updateTaskAction(
         task.projectId,
         task.id,
         {
@@ -125,6 +124,12 @@ export default function EditTaskModal({
           assigneeIds: selectedContributorId ? [selectedContributorId] : [],
         }
       );
+
+      if (!updatedTaskResponse.success || !updatedTaskResponse.data) {
+        throw new Error(updatedTaskResponse.message);
+      }
+
+      const updatedTaskRaw = updatedTaskResponse.data;
 
       const updatedTask: ITask = {
         ...updatedTaskRaw,

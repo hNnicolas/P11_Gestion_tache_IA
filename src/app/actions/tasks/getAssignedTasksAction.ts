@@ -47,6 +47,17 @@ export async function getAssignedTasksAction(): Promise<ITask[]> {
       orderBy: [{ priority: "asc" }, { dueDate: "asc" }],
     });
 
+    /* console.log(
+      "🟦 getAssignedTasksAction() — Tâches renvoyées par Prisma :",
+      tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        createdAt: t.createdAt,
+        projectId: t.projectId,
+        assignees: t.assignees.map((a) => a.userId),
+      }))
+    ); */
+
     return tasks.map((task) => ({
       ...task,
       status: STATUS_VALUES.includes(task.status as any)

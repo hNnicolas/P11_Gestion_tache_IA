@@ -1,16 +1,9 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import {
-  hasProjectAccess,
-  canModifyTasks,
-  getUserProjectRole,
-} from "@/app/utils/permissions";
+import { hasProjectAccess, canModifyTasks } from "@/app/utils/permissions";
 import { validateUpdateTaskData } from "@/app/utils/validation";
-import {
-  updateTaskAssignments,
-  validateProjectMembers,
-} from "@/app/utils/taskAssigments";
+import { updateTaskAssignments } from "@/app/utils/taskAssigments";
 import { getUser } from "@/app/actions/users/user";
 
 import {
@@ -41,9 +34,6 @@ export const updateTaskAction = async (
     if (!user?.id) return sendAuthError("Utilisateur non authentifié");
     const userId = user.id;
 
-    // --- Rôle ---
-    const role = await getUserProjectRole(userId, projectId);
-
     // --- Permissions ---
     const access = await hasProjectAccess(userId, projectId);
     if (!access) return sendError("Accès refusé au projet");
@@ -70,16 +60,26 @@ export const updateTaskAction = async (
       where: { id: taskId },
       include: { assignees: true },
     });
-
     if (!task || task.projectId !== projectId) {
       return sendError("Tâche introuvable", undefined, 404);
     }
 
     // --- Vérification assignations ---
     if (data.assigneeIds && data.assigneeIds.length > 0) {
-      const validMembers = await validateProjectMembers(
-        projectId,
-        data.assigneeIds
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { ownerId: true, members: { select: { userId: true } } },
+      });
+
+      if (!project) return sendError("Projet introuvable", undefined, 404);
+
+      const allMemberIds = [
+        project.ownerId,
+        ...project.members.map((m) => m.userId),
+      ];
+
+      const validMembers = data.assigneeIds.every((id) =>
+        allMemberIds.includes(id)
       );
       if (!validMembers) {
         return sendError(
@@ -122,9 +122,9 @@ export const updateTaskAction = async (
 
     if (!fullTask) return sendServerError("Erreur lors du rechargement");
 
-    console.log(
+    /*console.log(
       `[TASK UPDATE SUCCESS] taskId=${taskId} projectId=${projectId}`
-    );
+    );*/
 
     return sendSuccess("Tâche mise à jour avec succès", {
       ...fullTask,
@@ -133,6 +133,7 @@ export const updateTaskAction = async (
       priority: fullTask.priority || "LOW",
     });
   } catch (err: any) {
+    console.error("[ERROR updateTaskAction]", err);
     return sendServerError("Erreur serveur", err.message);
   }
 };

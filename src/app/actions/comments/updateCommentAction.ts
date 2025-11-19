@@ -67,7 +67,7 @@ export async function updateCommentAction(commentId: string, content: string) {
       },
     });
 
-    // console.log("Commentaire mis à jour :",updatedComment);
+    // console.log("Commentaire mis à jour :", updatedComment);
 
     return sendSuccess("Commentaire mis à jour avec succès", {
       comment: updatedComment,
