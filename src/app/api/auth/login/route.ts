@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loginUserAction } from "@/app/actions/loginUserAction";
+import { loginUserAction } from "@/app/actions/users/loginUserAction";
 
 export async function POST(req: NextRequest) {
   try {

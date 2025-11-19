@@ -3,7 +3,7 @@
 import { useState } from "react";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import DashboardTasksView from "@/components/DashboardTasksView";
-import { UserForClient } from "@/app/actions/getAllUsersAction";
+import { UserForClient } from "@/app/actions/users/getAllUsersAction";
 import { searchTasksAction } from "@/app/actions/tasks/searchTasksAction";
 
 type Props = {

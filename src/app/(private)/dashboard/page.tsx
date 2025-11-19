@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { getUser } from "@/app/actions/user";
+import { getUser } from "@/app/actions/users/user";
 import {
   getAllUsersAction,
   UserForClient,
-} from "@/app/actions/getAllUsersAction";
-import { getAssignedTasksAction } from "@/app/actions/getAssignedTasksAction";
+} from "@/app/actions/users/getAllUsersAction";
+import { getAssignedTasksAction } from "@/app/actions/tasks/getAssignedTasksAction";
 import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {

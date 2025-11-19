@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { createTaskWithIAClient } from "@/app/actions/createTaskWithIAClient";
+import { createTaskWithIAClient } from "@/app/actions/tasks/createTaskWithIAClient";
 import { updateTaskAction } from "@/app/actions/tasks/updateTaskAction";
 import { deleteTaskAction } from "@/app/actions/tasks/deleteTaskAction";
 

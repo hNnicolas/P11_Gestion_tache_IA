@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { updateProfileAction } from "@/app/actions/updateProfileAction";
-import { updatePasswordAction } from "@/app/actions/updatePasswordAction";
+import { updateProfileAction } from "@/app/actions/users/updateProfileAction";
+import { updatePasswordAction } from "@/app/actions/users/updatePasswordAction";
 
 interface User {
   id: string;

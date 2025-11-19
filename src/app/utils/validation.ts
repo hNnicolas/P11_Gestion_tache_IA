@@ -129,3 +129,29 @@ export const validateUpdateTaskData = (data: {
 
   return errors;
 };
+
+/* ------------------- Validation Commentaire ------------------- */
+export const validateUpdateCommentData = (data: {
+  content?: string;
+}): ValidationError[] => {
+  const errors: ValidationError[] = [];
+
+  if (data.content === undefined || data.content.trim().length === 0) {
+    errors.push({
+      field: "content",
+      message: "Le contenu du commentaire est requis",
+    });
+  } else if (data.content.trim().length < 2) {
+    errors.push({
+      field: "content",
+      message: "Le commentaire doit contenir au moins 2 caractères",
+    });
+  } else if (data.content.trim().length > 1000) {
+    errors.push({
+      field: "content",
+      message: "Le commentaire ne peut pas dépasser 1000 caractères",
+    });
+  }
+
+  return errors;
+};

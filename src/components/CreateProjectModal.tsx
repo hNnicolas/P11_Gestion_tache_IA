@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
-import { getUsers } from "@/app/actions/getUsersAction"; // action pour récupérer tous les users
-import { createProjectAction } from "@/app/actions/createProjectAction"; // action pour créer un projet
+import { getUsers } from "@/app/actions/users/getUsersAction"; // action pour récupérer tous les users
+import { createProjectAction } from "@/app/actions/projects/createProjectAction"; // action pour créer un projet
 
 interface User {
   id: string;

@@ -1,4 +1,3 @@
-// src/app/actions/getAllUsersAction.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";

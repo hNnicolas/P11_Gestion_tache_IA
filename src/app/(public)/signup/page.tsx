@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createUserAction } from "@/app/actions/createUser";
+import { createUserAction } from "@/app/actions/users/createUser";
 
 export default function SignupPage() {
   const router = useRouter();

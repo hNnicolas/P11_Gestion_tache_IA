@@ -11,7 +11,7 @@ import {
   updateTaskAssignments,
   validateProjectMembers,
 } from "@/app/utils/taskAssigments";
-import { getUser } from "@/app/actions/user";
+import { getUser } from "@/app/actions/users/user";
 
 import {
   sendSuccess,

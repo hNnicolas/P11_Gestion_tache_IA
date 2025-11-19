@@ -5,7 +5,7 @@ import Image from "next/image";
 import {
   createProjectAction,
   CreateProjectInput,
-} from "@/app/actions/createProjectAction";
+} from "@/app/actions/projects/createProjectAction";
 
 type Props = {
   isOpen: boolean;

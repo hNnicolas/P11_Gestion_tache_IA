@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getProjectsAction } from "@/app/actions/getProjectsAction";
-import { getProjectsProgressAction } from "@/app/actions/getAssignedTasksAction";
+import { getProjectsAction } from "@/app/actions/projects/getProjectsAction";
+import { getProjectsProgressAction } from "@/app/actions/tasks/getAssignedTasksAction";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import { deleteProjectAction } from "@/app/actions/projects/deleteProjectAction";
 

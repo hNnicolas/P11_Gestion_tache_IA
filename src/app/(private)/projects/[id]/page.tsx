@@ -1,5 +1,5 @@
 // app/projects/[id]/page.tsx
-import { getProjectByIdAction } from "@/app/actions/getProfileAction";
+import { getProjectByIdAction } from "@/app/actions/users/getProfileAction";
 import SingleProjectClient from "./SingleProjectClient";
 
 export default async function SingleProjectPage({
