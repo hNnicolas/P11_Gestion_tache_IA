@@ -4,46 +4,52 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
-import { z } from "zod";
+import { validateUpdatePasswordData } from "@/app/utils/validation";
 
-const JWT_SECRET = process.env.JWT_SECRET || "secret";
-
-interface UpdatePasswordInput {
-  currentPassword: string;
-  newPassword: string;
-}
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function updatePasswordAction({
   currentPassword,
   newPassword,
-}: UpdatePasswordInput) {
+}: {
+  currentPassword: string;
+  newPassword: string;
+}) {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
-  if (!token) throw new Error("Non authentifié");
+  if (!token) throw new Error("Utilisateur non authentifié");
 
-  const decoded = jwt.verify(token, JWT_SECRET) as {
-    id: string;
-    email: string;
-  };
+  // --- Décodage JWT ---
+  const decodedRaw = jwt.verify(token, JWT_SECRET) as any;
+  // console.log("[updatePasswordAction] Token décodé :", decodedRaw);
 
-  const schema = z.object({
-    currentPassword: z.string().min(6),
-    newPassword: z.string().min(6),
-  });
-  schema.parse({ currentPassword, newPassword });
+  // Normalisation id / userId
+  const userId = decodedRaw.id ?? decodedRaw.userId;
+  if (!userId) throw new Error("Token JWT invalide : ID manquant");
 
-  const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+  // --- Validation backend ---
+  const errors = validateUpdatePasswordData({ currentPassword, newPassword });
+  if (errors.length > 0) throw new Error(errors[0].message);
+
+  // --- Récupération utilisateur ---
+  const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error("Utilisateur non trouvé");
 
+  // --- Vérification password actuel ---
   const isValid = await bcrypt.compare(currentPassword, user.password);
   if (!isValid) throw new Error("Mot de passe actuel incorrect");
 
-  const hashedPassword = await bcrypt.hash(newPassword, 12);
+  const hashed = await bcrypt.hash(newPassword, 12);
 
   await prisma.user.update({
-    where: { id: decoded.id },
-    data: { password: hashedPassword },
+    where: { id: userId },
+    data: { password: hashed },
   });
 
-  return true;
+  console.log(
+    "[updatePasswordAction] Mot de passe mis à jour pour :",
+    user.email
+  );
+
+  return { success: true };
 }

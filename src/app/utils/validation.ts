@@ -1,22 +1,33 @@
+/* -----------------------------------------
+   Types
+----------------------------------------- */
 export type ValidationError = { field: string; message: string };
 
-/* ------------------- Validators ------------------- */
+/* -----------------------------------------
+   Validators — Fonctions utilitaires
+----------------------------------------- */
+
+/** Vérifie que l'email est valide */
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
+/** Vérifie que le mot de passe est valide */
 export const isValidPassword = (password: string): boolean => {
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
   return passwordRegex.test(password);
 };
 
-export const isValidDate = (dateString: string) => {
+/** Vérifie que la date ISO est valide */
+export const isValidDate = (dateString: string): boolean => {
   const date = new Date(dateString);
   return !isNaN(date.getTime());
 };
 
-/* ------------------- Validation Register ------------------- */
+/* -----------------------------------------
+   Validation - Registration
+----------------------------------------- */
 export const validateRegisterData = (data: {
   email: string;
   password: string;
@@ -24,30 +35,38 @@ export const validateRegisterData = (data: {
 }): ValidationError[] => {
   const errors: ValidationError[] = [];
 
-  if (!data.email)
+  // Email
+  if (!data.email) {
     errors.push({ field: "email", message: "L'email est requis" });
-  else if (!isValidEmail(data.email))
+  } else if (!isValidEmail(data.email)) {
     errors.push({ field: "email", message: "Format d'email invalide" });
+  }
 
-  if (!data.password)
+  // Mot de passe
+  if (!data.password) {
     errors.push({ field: "password", message: "Le mot de passe est requis" });
-  else if (!isValidPassword(data.password))
+  } else if (!isValidPassword(data.password)) {
     errors.push({
       field: "password",
       message:
-        "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre",
+        "Le mot de passe doit contenir au moins 8 caractères, une lettre majuscule, une lettre minuscule et un chiffre",
     });
+  }
 
-  if (data.name && data.name.trim().length < 2)
+  // Nom (optionnel)
+  if (data.name && data.name.trim().length < 2) {
     errors.push({
       field: "name",
       message: "Le nom doit contenir au moins 2 caractères",
     });
+  }
 
   return errors;
 };
 
-/* ------------------- Validation Login ------------------- */
+/* -----------------------------------------
+   Validation - Login
+----------------------------------------- */
 export const validateLoginData = (data: {
   email: string;
   password: string;
@@ -65,7 +84,79 @@ export const validateLoginData = (data: {
   return errors;
 };
 
-/* ------------------- Validation Update Task ------------------- */
+/* -----------------------------------------
+   Validation - Update Profile
+----------------------------------------- */
+export const validateUpdateProfileData = (data: {
+  name?: string;
+  email?: string;
+}): ValidationError[] => {
+  const errors: ValidationError[] = [];
+
+  // Email
+  if (data.email !== undefined) {
+    if (!data.email.trim()) {
+      errors.push({ field: "email", message: "L'email ne peut pas être vide" });
+    } else if (!isValidEmail(data.email)) {
+      errors.push({ field: "email", message: "Format d'email invalide" });
+    }
+  }
+
+  // Name
+  if (data.name !== undefined && data.name.trim().length < 2) {
+    errors.push({
+      field: "name",
+      message: "Le nom doit contenir au moins 2 caractères",
+    });
+  }
+
+  return errors;
+};
+
+/* -----------------------------------------
+   Validation - Update Password
+----------------------------------------- */
+export const validateUpdatePasswordData = (data: {
+  currentPassword: string;
+  newPassword: string;
+}): ValidationError[] => {
+  const errors: ValidationError[] = [];
+
+  if (!data.currentPassword)
+    errors.push({
+      field: "currentPassword",
+      message: "Le mot de passe actuel est requis",
+    });
+
+  if (!data.newPassword)
+    errors.push({
+      field: "newPassword",
+      message: "Le nouveau mot de passe est requis",
+    });
+  else if (!isValidPassword(data.newPassword))
+    errors.push({
+      field: "newPassword",
+      message:
+        "Le nouveau mot de passe doit contenir au moins 8 caractères, une lettre majuscule, une lettre minuscule et un chiffre",
+    });
+
+  if (
+    data.currentPassword &&
+    data.newPassword &&
+    data.currentPassword === data.newPassword
+  ) {
+    errors.push({
+      field: "newPassword",
+      message: "Le nouveau mot de passe doit être différent de l'actuel",
+    });
+  }
+
+  return errors;
+};
+
+/* -----------------------------------------
+   Validation - Update Task
+----------------------------------------- */
 export const validateUpdateTaskData = (data: {
   title?: string;
   description?: string;
@@ -76,30 +167,35 @@ export const validateUpdateTaskData = (data: {
 }): ValidationError[] => {
   const errors: ValidationError[] = [];
 
+  // Title
   if (data.title !== undefined) {
-    if (!data.title.trim())
+    const trimmed = data.title.trim();
+    if (!trimmed)
       errors.push({
         field: "title",
         message: "Le titre ne peut pas être vide",
       });
-    else if (data.title.trim().length < 2)
+    else if (trimmed.length < 2)
       errors.push({
         field: "title",
         message: "Le titre doit contenir au moins 2 caractères",
       });
-    else if (data.title.trim().length > 200)
+    else if (trimmed.length > 200)
       errors.push({
         field: "title",
         message: "Le titre ne peut pas dépasser 200 caractères",
       });
   }
 
-  if (data.description !== undefined && data.description.trim().length > 1000)
+  // Description
+  if (data.description !== undefined && data.description.trim().length > 1000) {
     errors.push({
       field: "description",
       message: "La description ne peut pas dépasser 1000 caractères",
     });
+  }
 
+  // Status
   if (
     data.status &&
     !["TODO", "IN_PROGRESS", "DONE", "CANCELLED"].includes(data.status)
@@ -109,6 +205,7 @@ export const validateUpdateTaskData = (data: {
       message: "Le statut doit être TODO, IN_PROGRESS, DONE ou CANCELLED",
     });
 
+  // Priority
   if (
     data.priority &&
     !["LOW", "MEDIUM", "HIGH", "URGENT"].includes(data.priority)
@@ -118,9 +215,11 @@ export const validateUpdateTaskData = (data: {
       message: "La priorité doit être LOW, MEDIUM, HIGH ou URGENT",
     });
 
+  // Due date
   if (data.dueDate !== undefined && data.dueDate && !isValidDate(data.dueDate))
     errors.push({ field: "dueDate", message: "Format de date invalide" });
 
+  // Assignees
   if (data.assigneeIds !== undefined && !Array.isArray(data.assigneeIds))
     errors.push({
       field: "assigneeIds",
@@ -130,13 +229,15 @@ export const validateUpdateTaskData = (data: {
   return errors;
 };
 
-/* ------------------- Validation Commentaire ------------------- */
+/* -----------------------------------------
+   Validation - Update Comment
+----------------------------------------- */
 export const validateUpdateCommentData = (data: {
   content?: string;
 }): ValidationError[] => {
   const errors: ValidationError[] = [];
 
-  if (data.content === undefined || data.content.trim().length === 0) {
+  if (!data.content || data.content.trim().length === 0) {
     errors.push({
       field: "content",
       message: "Le contenu du commentaire est requis",

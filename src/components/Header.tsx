@@ -4,15 +4,10 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import { useUser } from "../context/UserContext";
 
 export default function Header() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, setUser } = useUser();
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
 
@@ -38,16 +33,16 @@ export default function Header() {
       }
     };
     fetchUser();
-  }, []);
+  }, [setUser]);
 
   const initials = user?.name
     ? user.name
         .split(" ")
+        .filter(Boolean)
         .map((n) => n[0].toUpperCase())
-        .join("")
+        .join("") || "?"
     : "?";
 
-  // Choix des icônes
   const dashboardIcon =
     isProjects || isSingleProject || isProfil
       ? "/images/icons/menu-items-project.png"
@@ -58,7 +53,6 @@ export default function Header() {
       ? "/images/icons/folder.png"
       : "/images/icons/folder-white.png";
 
-  // Couleurs texte selon la page
   const dashboardTextColor = isDashboard ? "text-white!" : "text-[#D3580B]!";
   const projectsTextColor =
     isProjects || isSingleProject ? "text-white!" : "text-[#D3580B]!";
@@ -76,9 +70,7 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* Navigation */}
         <nav className="flex items-center gap-6">
-          {/* Dashboard */}
           <Link
             href="/dashboard"
             className={clsx(
@@ -97,7 +89,6 @@ export default function Header() {
             <span className={clsx(dashboardTextColor)}>Tableau de bord</span>
           </Link>
 
-          {/* Projets */}
           <Link
             href="/projects"
             className={clsx(
@@ -113,7 +104,6 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* Utilisateur */}
         {user && (
           <Link
             href="/profil"
