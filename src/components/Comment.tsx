@@ -37,8 +37,6 @@ export default function Comments({
   currentUser,
   onNewComment,
 }: CommentsProps) {
-  console.log("🟦 currentUser reçu :", currentUser);
-
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [newComment, setNewComment] = useState("");
 
@@ -112,11 +110,19 @@ export default function Comments({
   };
 
   return (
-    <div className="mt-2 flex flex-col gap-2">
-      <ul className="flex flex-col gap-2">
+    <div className="mt-2 flex flex-col gap-2" aria-live="polite">
+      <ul className="flex flex-col gap-2" role="list">
         {comments.map((comment) => (
-          <li key={comment.id} className="flex gap-2 items-start text-gray-700">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gray-200">
+          <li
+            key={comment.id}
+            role="article"
+            aria-label={`Commentaire de ${comment.author.name}`}
+            className="flex gap-2 items-start text-gray-700"
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gray-200"
+              aria-hidden="true"
+            >
               <span className="text-sm font-medium text-black">
                 {getInitials(comment.author.name)}
               </span>
@@ -131,6 +137,7 @@ export default function Comments({
                 {comment.author.id === currentUser?.userId && (
                   <div className="flex items-center gap-1">
                     <button
+                      aria-label="Modifier ce commentaire"
                       onClick={() => {
                         const updatedContent = prompt(
                           "Modifier le commentaire :",
@@ -139,14 +146,15 @@ export default function Comments({
                         if (updatedContent)
                           handleUpdateComment(comment.id, updatedContent);
                       }}
-                      className="text-blue-500 text-xs ml-2"
+                      className="text-blue-500 text-xs ml-2 underline focus:outline-blue-600"
                     >
                       Modifier
                     </button>
 
                     <button
+                      aria-label="Supprimer ce commentaire"
                       onClick={() => handleDeleteComment(comment.id)}
-                      className="text-red-500 text-xs ml-1"
+                      className="text-red-500 text-xs ml-1 underline focus:outline-red-600"
                     >
                       Supprimer
                     </button>
@@ -164,9 +172,15 @@ export default function Comments({
       </ul>
 
       {/* Ajouter un commentaire */}
-      <div className="mt-3 bg-[#F7F7F7] p-3 rounded-xl border border-gray-200">
+      <div
+        className="mt-3 bg-[#F7F7F7] p-3 rounded-xl border border-gray-200"
+        aria-label="Zone d’ajout d’un commentaire"
+      >
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#FFE8D9]">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-[#FFE8D9]"
+            aria-hidden="true"
+          >
             <span className="text-sm font-medium text-black">
               {getInitials(currentUser?.name)}
             </span>
@@ -177,16 +191,24 @@ export default function Comments({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Ajouter un commentaire..."
+              aria-label="Écrire un commentaire"
               className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               rows={2}
               disabled={!currentUser}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAddComment();
+                }
+              }}
             />
 
             <div className="flex justify-end mt-2">
               <button
                 onClick={handleAddComment}
                 disabled={!newComment.trim() || !currentUser}
-                className="text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed px-4 py-1.5 text-sm rounded-lg transition-all"
+                aria-label="Envoyer le commentaire"
+                className="text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed px-4 py-1.5 text-sm rounded-lg transition-all focus:outline-blue-600"
               >
                 Envoyer
               </button>

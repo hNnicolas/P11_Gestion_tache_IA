@@ -572,17 +572,23 @@ export default function SingleProjectClient({ project }: { project: any }) {
                   <div className="mt-3">
                     <button
                       onClick={() => toggleComments(task.id)}
-                      className="flex items-center justify-between w-full text-sm font-medium text-gray-600 hover:text-gray-800 focus:outline-none"
+                      aria-expanded={expandedComments[task.id] || false}
+                      aria-controls={`comments-panel-${task.id}`}
+                      id={`comments-toggle-${task.id}`}
+                      className="flex items-center justify-between w-full text-sm font-medium text-gray-600 hover:text-gray-800 
+             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md"
                     >
                       <span style={{ color: "#575757" }}>
                         Commentaires ({task.comments?.length || 0})
                       </span>
+
                       <svg
                         className={`w-4 h-4 ml-2 transition-transform ${
                           expandedComments[task.id] ? "rotate-180" : ""
                         }`}
                         fill="currentColor"
                         viewBox="0 0 20 20"
+                        aria-hidden="true"
                       >
                         <path
                           fillRule="evenodd"
@@ -593,7 +599,12 @@ export default function SingleProjectClient({ project }: { project: any }) {
                     </button>
 
                     {expandedComments[task.id] && (
-                      <div className="mt-2">
+                      <div
+                        id={`comments-panel-${task.id}`}
+                        role="region"
+                        aria-labelledby={`comments-toggle-${task.id}`}
+                        className="mt-2"
+                      >
                         <Comments
                           initialComments={task.comments || []}
                           taskId={task.id}
