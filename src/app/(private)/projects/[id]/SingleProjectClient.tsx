@@ -465,7 +465,6 @@ export default function SingleProjectClient({ project }: { project: any }) {
                         {statusColors[normalizeStatusKey(task.status)].label}
                       </span>
                     </div>
-
                     <Image
                       src="/images/icons/button-dot.png"
                       width={50}
@@ -473,6 +472,12 @@ export default function SingleProjectClient({ project }: { project: any }) {
                       alt="dot"
                       className="ml-auto cursor-pointer"
                       onClick={async () => {
+                        const confirmed = window.confirm(
+                          "Voulez-vous vraiment supprimer cette tâche ?"
+                        );
+
+                        if (!confirmed) return;
+
                         try {
                           const result = await deleteTaskAction(
                             project.id,

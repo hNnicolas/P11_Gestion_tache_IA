@@ -170,6 +170,7 @@ export default function DashboardClient({ user, allUsers }: Props) {
           currentUserId={user.id}
           view={view}
           setView={setView}
+          allUsers={allUsers}
         />
       </section>
 

@@ -64,28 +64,66 @@ export const updateTaskAction = async (
       return sendError("Tâche introuvable", undefined, 404);
     }
 
-    // --- Vérification assignations ---
-    if (data.assigneeIds && data.assigneeIds.length > 0) {
-      const project = await prisma.project.findUnique({
+    // --- Synchronisation contributeurs / assignés ---
+    if (data.assigneeIds !== undefined) {
+      const projectInfo = await prisma.project.findUnique({
         where: { id: projectId },
-        select: { ownerId: true, members: { select: { userId: true } } },
+        select: {
+          ownerId: true,
+          members: { select: { userId: true } },
+        },
       });
 
-      if (!project) return sendError("Projet introuvable", undefined, 404);
+      if (!projectInfo) return sendError("Projet introuvable", undefined, 404);
 
-      const allMemberIds = [
-        project.ownerId,
-        ...project.members.map((m) => m.userId),
+      const projectMemberIds = [
+        projectInfo.ownerId,
+        ...projectInfo.members.map((m) => m.userId),
       ];
 
-      const validMembers = data.assigneeIds.every((id) =>
-        allMemberIds.includes(id)
-      );
-      if (!validMembers) {
-        return sendError(
-          "Certains utilisateurs assignés ne sont pas membres du projet"
-        );
+      // Assignés actuels de la tâche
+      const currentAssignees = task.assignees.map((a) => a.userId);
+
+      // Nouveaux assignés
+      const newAssignees = data.assigneeIds;
+
+      // --- Ajoute les nouveaux contributeurs ---
+      for (const userId of newAssignees) {
+        if (!projectMemberIds.includes(userId)) {
+          console.log(`➡ Ajout du contributeur ${userId} au projet`);
+
+          await prisma.projectMember.create({
+            data: {
+              userId,
+              projectId,
+              role: "CONTRIBUTOR",
+            },
+          });
+
+          projectMemberIds.push(userId);
+        }
       }
+
+      // --- Retire les contributeurs supprimés ---
+      const removed = currentAssignees.filter(
+        (id) => !newAssignees.includes(id)
+      );
+
+      for (const userId of removed) {
+        console.log(
+          `➡ Suppression du contributeur ${userId} du projet (optionnel)`
+        );
+
+        await prisma.projectMember.deleteMany({
+          where: {
+            userId,
+            projectId,
+          },
+        });
+      }
+
+      // --- Mise à jour des assignations de la tâche ---
+      await updateTaskAssignments(taskId, data.assigneeIds);
     }
 
     // --- Prépare payload ---

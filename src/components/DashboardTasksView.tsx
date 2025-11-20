@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import TasksList from "@/components/TaskList";
 import TasksKanban from "@/components/TasksKanban";
 import EditTaskModal from "@/components/modals/EditTaskModal";
+import { UserForClient } from "@/app/actions/users/getAllUsersAction";
 import { ITask } from "@/lib/prisma";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   currentUserId: string;
   view: "LIST" | "KANBAN";
   setView: (v: "LIST" | "KANBAN") => void;
+  allUsers: UserForClient[];
 };
 
 export default function DashboardTasksView({
@@ -20,6 +22,7 @@ export default function DashboardTasksView({
   currentUserId,
   view,
   setView,
+  allUsers,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<ITask | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -56,6 +59,7 @@ export default function DashboardTasksView({
           project={project}
           currentUserId={currentUserId}
           onTaskUpdated={handleTaskUpdated}
+          allUsers={allUsers}
         />
       )}
     </div>

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export type UserForClient = {
   id: string;
   email: string;
-  name: string; // toujours string
+  name: string;
 };
 
 export async function getAllUsersAction(): Promise<UserForClient[]> {

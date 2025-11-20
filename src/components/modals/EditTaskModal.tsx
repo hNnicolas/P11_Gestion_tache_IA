@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ITask } from "@/lib/prisma";
 import { updateTaskAction } from "@/app/actions/tasks/updateTaskAction";
+import { UserForClient } from "@/app/actions/users/getAllUsersAction";
 
 type Props = {
   isOpen: boolean;
@@ -12,6 +13,7 @@ type Props = {
   project: any;
   currentUserId: string;
   onTaskUpdated: (task: ITask) => void;
+  allUsers: UserForClient[];
 };
 
 const validStatuses = ["TODO", "IN_PROGRESS", "DONE", "CANCELLED"] as const;
@@ -36,10 +38,12 @@ export default function EditTaskModal({
   project,
   currentUserId,
   onTaskUpdated,
+  allUsers,
 }: Props) {
-  const initialAssignee = task.assignees?.[0]?.user
-    ? { id: task.assignees[0].user.id, name: task.assignees[0].user.name ?? "" }
-    : { id: "", name: "" };
+  // --- initialisation assignés existants ---
+  const initialAssigneeIds = task.assignees?.map((a) => a.user.id) || [];
+  const initialAssigneeNames =
+    task.assignees?.map((a) => a.user.name ?? "") || [];
 
   const [form, setForm] = useState({
     title: task.title,
@@ -47,12 +51,10 @@ export default function EditTaskModal({
     dueDate: task.dueDate
       ? new Date(task.dueDate).toISOString().substring(0, 10)
       : "",
-    assigneeName: initialAssignee.name,
   });
 
-  const [selectedContributorId, setSelectedContributorId] = useState<string>(
-    initialAssignee.id
-  );
+  const [selectedContributorIds, setSelectedContributorIds] =
+    useState<string[]>(initialAssigneeIds);
   const [selectedStatus, setSelectedStatus] = useState<TaskStatus>(
     castStatus(task.status)
   );
@@ -82,31 +84,26 @@ export default function EditTaskModal({
 
   useEffect(() => {
     if (isOpen) {
-      const a = task.assignees?.[0]?.user;
+      const assignees = task.assignees?.map((a) => a.user) || [];
       setForm({
         title: task.title,
         description: task.description ?? "",
         dueDate: task.dueDate
           ? new Date(task.dueDate).toISOString().substring(0, 10)
           : "",
-        assigneeName: a?.name ?? "",
       });
-      setSelectedContributorId(a?.id ?? "");
+      setSelectedContributorIds(assignees.map((u) => u.id));
       setSelectedStatus(castStatus(task.status));
     }
   }, [isOpen, task]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsOpen(false);
-    };
-    if (isOpen) window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => setForm({ ...form, [e.target.name]: e.target.value });
+  const toggleContributor = (userId: string) => {
+    setSelectedContributorIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -121,7 +118,7 @@ export default function EditTaskModal({
             ? new Date(form.dueDate).toISOString()
             : undefined,
           status: selectedStatus,
-          assigneeIds: selectedContributorId ? [selectedContributorId] : [],
+          assigneeIds: selectedContributorIds,
         }
       );
 
@@ -130,7 +127,6 @@ export default function EditTaskModal({
       }
 
       const updatedTaskRaw = updatedTaskResponse.data;
-
       const updatedTask: ITask = {
         ...updatedTaskRaw,
         status: castStatus(updatedTaskRaw.status),
@@ -171,7 +167,7 @@ export default function EditTaskModal({
           <input
             name="title"
             value={form.title}
-            onChange={handleChange}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm"
             required
           />
@@ -180,7 +176,7 @@ export default function EditTaskModal({
           <textarea
             name="description"
             value={form.description}
-            onChange={handleChange}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
 
@@ -189,27 +185,20 @@ export default function EditTaskModal({
             type="date"
             name="dueDate"
             value={form.dueDate}
-            onChange={handleChange}
+            onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
 
-          {/* Assignee dropdown */}
+          {/* Contributors dropdown */}
           <div className="relative w-full mb-5">
             <input
               type="text"
-              value={
-                form.assigneeName ||
-                (project?.members?.length !== undefined
-                  ? `${project.members.length + 1} Contributeurs`
-                  : "0 Contributeurs")
-              }
+              value={`${selectedContributorIds.length} contributeurs`}
               readOnly
               onClick={() => setShowContributors(!showContributors)}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-8 cursor-pointer"
               style={{ color: "var(--color-sous-texte)" }}
             />
-
-            {/* Flèche */}
             <div className="absolute inset-y-0 right-2 flex items-center">
               <svg
                 className={`w-4 h-4 text-gray-500 transition-transform ${
@@ -227,42 +216,26 @@ export default function EditTaskModal({
                 />
               </svg>
             </div>
-
-            {/* Dropdown */}
             {showContributors && (
               <ul className="mt-2 border border-gray-200 rounded-md bg-white shadow-sm p-2 max-h-40 overflow-auto text-sm text-gray-700 absolute w-full z-10">
-                {project?.owner && (
+                {allUsers.map((user) => (
                   <li
-                    className="font-semibold px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => {
-                      setForm({ ...form, assigneeName: project.owner.name });
-                      setSelectedContributorId(project.owner.id);
-                      setShowContributors(false);
-                    }}
+                    key={user.id}
+                    className={`px-2 py-1 hover:bg-gray-100 cursor-pointer ${
+                      user.id === project?.owner?.id ? "font-semibold" : ""
+                    }`}
+                    onClick={() => toggleContributor(user.id)}
                   >
-                    {project.owner.name} (Propriétaire)
+                    <input
+                      type="checkbox"
+                      checked={selectedContributorIds.includes(user.id)}
+                      readOnly
+                      className="mr-2"
+                    />
+                    {user.name}{" "}
+                    {user.id === project?.owner?.id && "(Propriétaire)"}
                   </li>
-                )}
-
-                {project?.members?.length ? (
-                  project.members.map((member: any) => (
-                    <li
-                      key={member.user.id}
-                      className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        setForm({ ...form, assigneeName: member.user.name });
-                        setSelectedContributorId(member.user.id);
-                        setShowContributors(false);
-                      }}
-                    >
-                      {member.user.name}
-                    </li>
-                  ))
-                ) : (
-                  <li className="px-2 py-1 text-gray-400">
-                    Aucun contributeur
-                  </li>
-                )}
+                ))}
               </ul>
             )}
           </div>
