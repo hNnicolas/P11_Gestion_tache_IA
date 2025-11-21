@@ -45,86 +45,104 @@ export default function CreateModalIA({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
+  const firstFocusableRef = useRef<HTMLButtonElement>(null);
+  const lastFocusableRef = useRef<HTMLButtonElement>(null);
 
-  /* Fermeture ESC */
+  /* Fermeture ESC + navigation clavier */
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
       if (e.key === "Escape") setIsOpen(false);
+
       if (e.key === "Enter" && view === "generate") handleGenerate();
+
+      // Focus trap
+      if (e.key === "Tab" && modalRef.current) {
+        const focusableEls = modalRef.current.querySelectorAll<
+          HTMLButtonElement | HTMLInputElement | HTMLTextAreaElement
+        >(
+          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+        );
+        if (focusableEls.length === 0) return;
+
+        const firstEl = focusableEls[0];
+        const lastEl = focusableEls[focusableEls.length - 1];
+
+        if (!e.shiftKey && document.activeElement === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+
+        if (e.shiftKey && document.activeElement === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        }
+      }
     };
+
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [view, prompt]);
+  }, [view, prompt, isOpen]);
 
-  /* Clic extérieur */
+  /* Clic extérieur pour fermer modal */
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!isOpen) return;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
+
     window.addEventListener("mousedown", handleClickOutside);
     return () => window.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
   /* ----------- GÉNÉRATION IA ----------- */
   const handleGenerate = async () => {
     if (!prompt.trim() || !projectId) return;
-
     setLoading(true);
 
     try {
       const res = await createTaskWithIAClient(prompt, projectId);
-
-      if (!res.success) {
-        console.error("❌ Erreur création tâche IA :", res.message, res.error);
-        alert(res.message);
-        return;
-      }
+      if (!res.success) return;
 
       const tasksData = res.data?.task;
-      if (!tasksData) {
-        console.warn("⚠️ Aucune tâche retournée par le serveur");
-        return;
-      }
-
       const newTasks = Array.isArray(tasksData)
         ? tasksData.map((t: any) => ({
             id: t.id,
             title: t.title,
             description: t.description,
-            isNew: true,
           }))
         : [
             {
               id: tasksData.id,
               title: tasksData.title,
               description: tasksData.description,
-              isNew: true,
             },
           ];
 
       setTasks((prev) => [...prev, ...newTasks]);
+
+      newTasks.forEach((task) => {
+        window.dispatchEvent(new CustomEvent("taskCreated", { detail: task }));
+      });
+
       setPrompt("");
       setView("list");
-    } catch (err) {
-      console.error("Erreur génération IA :", err);
-      alert("Une erreur est survenue lors de la création de la tâche IA.");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ----------- MISE À JOUR ----------- */
+  /* ----------- AJOUT TÂCHE ----------- */
   const handleAddTask = async () => {
     if (!projectId || !prompt.trim()) return;
-
     setLoading(true);
-
     try {
-      // Appel à la route IA via la fonction client
       const res = await createTaskWithIAClient(prompt, projectId);
-
       if (!res.success) {
         console.error("❌ Erreur création tâche IA :", res.message, res.error);
         alert(res.message || "Erreur lors de la création de la tâche IA");
@@ -137,7 +155,6 @@ export default function CreateModalIA({
         return;
       }
 
-      // Ajout dans l'état local pour affichage immédiat
       setTasks((prev) => [
         ...prev,
         {
@@ -154,10 +171,10 @@ export default function CreateModalIA({
         },
       ]);
 
+      window.dispatchEvent(new CustomEvent("taskCreated", { detail: newTask }));
+
       setPrompt("");
       setView("list");
-
-      console.log("✅ Tâche IA ajoutée :", newTask);
     } catch (err: any) {
       console.error("Erreur création tâche IA :", err);
       alert(
@@ -186,21 +203,25 @@ export default function CreateModalIA({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
       <div
         ref={modalRef}
         className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl h-[800px] flex flex-col"
       >
-        {/* ----------- HEADER ----------- */}
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center gap-2">
             <Image
               src="/images/icons/star.png"
               width={20}
               height={20}
-              alt="star"
+              alt="star icon"
             />
-            <h2 className="text-xl font-semibold">
+            <h2 id="modal-title" className="text-xl font-semibold">
               {view === "generate"
                 ? "Créer une tâche avec IA"
                 : "Vos tâches..."}
@@ -212,12 +233,14 @@ export default function CreateModalIA({
               setIsOpen(false);
               setPrompt("");
             }}
+            aria-label="Fermer la modal"
+            ref={firstFocusableRef}
           >
             <Image
               src="/images/icons/close-modal.png"
               width={22}
               height={22}
-              alt="close"
+              alt="close icon"
             />
           </button>
         </div>
@@ -231,18 +254,21 @@ export default function CreateModalIA({
                 className="flex-1 bg-transparent outline-none px-2 py-2"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
+                aria-label="Description de la tâche"
               />
 
               <button
                 onClick={handleGenerate}
                 disabled={loading}
+                aria-label="Générer tâche IA"
                 className="focus:ring-2 focus:ring-black rounded-full"
+                ref={lastFocusableRef}
               >
                 <Image
                   src="/images/icons/button-IA.png"
                   width={38}
                   height={38}
-                  alt="generate"
+                  alt="generate icon"
                 />
               </button>
             </div>
@@ -257,19 +283,27 @@ export default function CreateModalIA({
 
         {view === "list" && (
           <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 pb-4">
+            <div
+              className="flex-1 overflow-y-auto pr-1 flex flex-col gap-4 pb-4"
+              role="region"
+              aria-label="Liste des tâches générées"
+            >
               {tasks.map((task) => (
                 <div
                   key={task.id}
                   className="bg-white border border-[#E5E7EB] rounded-[20px] p-5 shadow-sm"
+                  role="group"
+                  aria-labelledby={`task-title-${task.id}`}
                 >
                   <input
+                    id={`task-title-${task.id}`}
                     className="w-full outline-none text-lg font-semibold mb-1"
                     value={task.title || ""}
                     onChange={(e) =>
                       updateTask(task.id, "title", e.target.value)
                     }
                     disabled={editingTaskId !== task.id}
+                    aria-label="Titre de la tâche"
                   />
 
                   <textarea
@@ -279,6 +313,7 @@ export default function CreateModalIA({
                       updateTask(task.id, "description", e.target.value)
                     }
                     disabled={editingTaskId !== task.id}
+                    aria-label="Description de la tâche"
                   />
 
                   <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -286,7 +321,6 @@ export default function CreateModalIA({
                       onClick={async () => {
                         if (!projectId) return;
                         try {
-                          // Appel à l'action serveur pour supprimer la tâche
                           const res = await deleteTaskAction(
                             projectId,
                             task.id
@@ -302,8 +336,13 @@ export default function CreateModalIA({
                             return;
                           }
 
-                          // Mise à jour de l'état local
                           deleteTask(task.id);
+
+                          window.dispatchEvent(
+                            new CustomEvent("taskDeleted", {
+                              detail: { id: task.id },
+                            })
+                          );
                         } catch (err) {
                           console.error("Erreur suppression tâche :", err);
                           alert(
@@ -312,12 +351,13 @@ export default function CreateModalIA({
                         }
                       }}
                       className="flex items-center gap-1 hover:opacity-70"
+                      aria-label={`Supprimer la tâche ${task.title}`}
                     >
                       <Image
                         src="/images/icons/drop.png"
                         width={16}
                         height={16}
-                        alt="delete"
+                        alt="delete icon"
                       />
                       Supprimer
                     </button>
@@ -347,8 +387,6 @@ export default function CreateModalIA({
                             }
 
                             const updatedTask = res.data;
-
-                            // 🔹 CAST pour correspondre au type Task
                             const updatedTaskTyped: Task = {
                               id: updatedTask.id,
                               title: updatedTask.title,
@@ -370,6 +408,12 @@ export default function CreateModalIA({
                               )
                             );
 
+                            window.dispatchEvent(
+                              new CustomEvent("taskUpdated", {
+                                detail: updatedTaskTyped,
+                              })
+                            );
+
                             setEditingTaskId(null);
                           } catch (err) {
                             console.error("Erreur sauvegarde tâche :", err);
@@ -382,12 +426,13 @@ export default function CreateModalIA({
                         }
                       }}
                       className="flex items-center gap-1 hover:opacity-70"
+                      aria-label={`Modifier la tâche ${task.title}`}
                     >
                       <Image
                         src="/images/icons/edit.png"
                         width={14}
                         height={14}
-                        alt="edit"
+                        alt="edit icon"
                       />
                       {editingTaskId === task.id ? "Enregistrer" : "Modifier"}
                     </button>
@@ -395,9 +440,11 @@ export default function CreateModalIA({
                 </div>
               ))}
             </div>
+
             <button
               className="bg-black text-white rounded-full px-6 py-2 text-sm font-medium mb-3 hover:opacity-90 mx-auto"
               onClick={handleAddTask}
+              aria-label="Ajouter les tâches"
             >
               + Ajouter les tâches
             </button>
@@ -410,21 +457,24 @@ export default function CreateModalIA({
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                aria-label="Nouvelle tâche"
               />
 
               <button
                 onClick={handleGenerate}
                 disabled={loading}
                 className="focus:ring-2 focus:ring-black rounded-full"
+                aria-label="Ajouter tâche IA"
               >
                 <Image
                   src="/images/icons/button-IA.png"
                   width={34}
                   height={34}
-                  alt="add"
+                  alt="add icon"
                 />
               </button>
             </div>
+
             {loading && (
               <p className="text-xs text-gray-500 mt-2">
                 ✨ Génération en cours...

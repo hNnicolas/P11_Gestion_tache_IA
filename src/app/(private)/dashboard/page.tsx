@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const userFromDb = await getUser();
   if (!userFromDb) redirect("/login");
 
-  // 🔹 Normalisation du nom pour qu'il soit toujours string
+  // Normalisation du nom pour qu'il soit toujours string
   const user = {
     id: userFromDb.id,
     email: userFromDb.email,

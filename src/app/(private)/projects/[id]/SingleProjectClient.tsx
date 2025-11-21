@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import CreateTaskModal from "@/components/modals/CreateTaskModal";
@@ -9,6 +9,10 @@ import CreateTaskModalWithIA from "@/components/modals/CreateTaskModalWithIA";
 import { createTaskWithIAClient } from "@/app/actions/tasks/createTaskWithIAClient";
 import { searchTasksAction } from "@/app/actions/tasks/searchTasksAction";
 import { deleteTaskAction } from "@/app/actions/tasks/deleteTaskAction";
+import {
+  getAllUsersAction,
+  UserForClient,
+} from "@/app/actions/users/getAllUsersAction";
 import Comments from "@/components/Comment";
 
 type Task = {
@@ -23,7 +27,7 @@ type Task = {
 
 export default function SingleProjectClient({ project }: { project: any }) {
   const router = useRouter();
-
+  const [allUsers, setAllUsers] = useState<UserForClient[]>([]);
   const [tasks, setTasks] = useState<Task[]>(project.tasks);
   const [currentProject, setCurrentProject] = useState(project);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -162,7 +166,6 @@ export default function SingleProjectClient({ project }: { project: any }) {
         // Pace les tâches du résultat de recherche
         normalizedTasks.forEach((t) => tasksMap.set(t.id, t));
 
-        // Puis on ajoute les anciennes tâches (sauf celles déjà présentes)
         prevTasks.forEach((t) => {
           if (!tasksMap.has(t.id)) tasksMap.set(t.id, t);
         });
@@ -172,12 +175,19 @@ export default function SingleProjectClient({ project }: { project: any }) {
       });
 
       setSearchResults(normalizedTasks);
-      // Remettre le champ à zéro
       setSearchQuery("");
     } else {
       alert(result.message);
     }
   };
+
+  useEffect(() => {
+    async function fetchUsers() {
+      const users = await getAllUsersAction();
+      setAllUsers(users);
+    }
+    fetchUsers();
+  }, []);
 
   return (
     <main
@@ -186,7 +196,6 @@ export default function SingleProjectClient({ project }: { project: any }) {
       aria-label={`Page du projet ${project.name}`}
     >
       <div className="max-w-[1650px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* === HEADER === */}
         <header
           className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"
           aria-label="En-tête du projet"
@@ -205,21 +214,28 @@ export default function SingleProjectClient({ project }: { project: any }) {
               />
             </button>
             <div>
-              <h1 className="text-(--color-text) text-2xl font-bold flex items-center gap-2">
-                {project.name}
+              <h1
+                className="text-(--color-text) text-2xl font-bold flex items-center gap-2"
+                tabIndex={0}
+                aria-label={`Nom du projet: ${currentProject.name}`}
+              >
+                {currentProject.name}
                 <button
                   onClick={() => setIsEditModalOpen(true)}
                   className="text-(--color-principal) hover:underline text-sm font-medium focus:outline-none focus:ring-1 focus:ring-(--color-principal) rounded-sm"
-                  aria-label={`Modifier le projet ${project.name}`}
+                  aria-label={`Modifier le projet ${currentProject.name}`}
                 >
                   Modifier
                 </button>
               </h1>
+
               <p
                 className="text-sm md:text-base mt-1"
                 style={{ color: "var(--color-sous-texte)" }}
+                tabIndex={0}
+                aria-label={`Description du projet: ${currentProject.description}`}
               >
-                {project.description}
+                {currentProject.description}
               </p>
             </div>
           </div>
@@ -249,25 +265,41 @@ export default function SingleProjectClient({ project }: { project: any }) {
           </div>
         </header>
 
-        {/* === CONTRIBUTEURS === */}
         <section
           className="bg-[#F3F4F6] rounded-lg px-4 py-3 mb-6 flex flex-wrap items-center gap-3"
-          aria-label="Contributeurs du projet"
+          aria-label={`Contributeurs du projet ${project.name}`}
+          tabIndex={0}
         >
-          <p className="text-sm font-medium">
-            Contributeurs {project.members.length + 1}{" "}
+          <p
+            className="text-sm font-medium"
+            tabIndex={0}
+            aria-label={`Nombre de contributeurs: ${
+              currentProject.members.length + 1
+            }`}
+          >
+            Contributeurs {currentProject.members.length + 1}{" "}
             <span style={{ color: "var(--color-sous-texte)" }}>personnes</span>
           </p>
+
           <div className="flex flex-wrap gap-3 ml-auto" role="list">
-            <div className="flex items-center gap-2" role="listitem">
+            <div
+              className="flex items-center gap-2"
+              role="listitem"
+              tabIndex={0}
+              aria-label={`Propriétaire du projet: ${currentProject.owner.name}`}
+            >
               <div
                 className="w-8 h-8 flex items-center justify-center rounded-full font-semibold"
                 style={{
                   backgroundColor: "#FFE8D9",
                   color: "var(--color-principal)",
                 }}
+                tabIndex={0}
+                aria-label={`Initiales du propriétaire: ${getInitials(
+                  currentProject.owner.name
+                )}`}
               >
-                {getInitials(project.owner.name)}
+                {getInitials(currentProject.owner.name)}
               </div>
               <span
                 className="text-sm font-medium px-2 py-0.5 rounded-full"
@@ -279,21 +311,33 @@ export default function SingleProjectClient({ project }: { project: any }) {
                 Propriétaire
               </span>
             </div>
-            {project.members.map((member: any) => (
+
+            {currentProject.members.map((member: any) => (
               <div
                 key={member.user.id}
                 className="flex items-center gap-2"
                 role="listitem"
+                tabIndex={0}
+                aria-label={`Contributeur: ${member.user.name}`}
               >
                 <div
                   className="w-8 h-8 flex items-center justify-center rounded-[10px] font-semibold"
-                  style={{ backgroundColor: "#E5E7EB", color: "#0F0F0F" }}
+                  style={{ backgroundColor: "#E5E7EB", color: "#5F6062" }}
+                  tabIndex={0}
+                  aria-label={`Initiales du contributeur: ${getInitials(
+                    member.user.name
+                  )}`}
                 >
                   {getInitials(member.user.name)}
                 </div>
                 <span
-                  className="text-sm truncate"
-                  style={{ color: "var(--color-text)" }}
+                  className="text-sm truncate px-2 py-0.5 rounded"
+                  style={{
+                    backgroundColor: "#E5E7EB",
+                    color: "#7A808D",
+                    borderRadius: "10px",
+                  }}
+                  tabIndex={0}
                 >
                   {member.user.name}
                 </span>
@@ -302,7 +346,6 @@ export default function SingleProjectClient({ project }: { project: any }) {
           </div>
         </section>
 
-        {/* === TÂCHES === */}
         <section
           className="bg-white rounded-lg p-4 shadow-sm"
           aria-label="Liste des tâches"
@@ -320,11 +363,9 @@ export default function SingleProjectClient({ project }: { project: any }) {
               </p>
             </div>
 
-            {/* Filtres et recherche */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Liste */}
               <button
-                className="flex items-center gap-2 bg-(--color-tag2-bg) text-(--color-principal) px-3 py-1.5 rounded-[5px] text-sm font-medium focus:outline-none focus:ring-1 focus:ring-(--color-principal)"
+                className="flex items-center gap-2 bg-[#FFE8D9] text-(--color-principal) px-3 py-1.5 rounded-[5px] text-sm font-medium focus:outline-none focus:ring-1 focus:ring-(--color-principal)"
                 aria-pressed="true"
               >
                 <Image
@@ -336,9 +377,8 @@ export default function SingleProjectClient({ project }: { project: any }) {
                 Liste
               </button>
 
-              {/* Calendrier */}
               <button
-                className="flex items-center gap-2 bg-white border border-gray-200 text-(--color-principal) py-1.5 rounded-[5px] text-sm font-medium hover:bg-(--color-button-hover)"
+                className="flex items-center gap-2 bg-white text-(--color-principal) py-1.5 rounded-[5px] text-sm font-medium"
                 aria-label="Vue calendrier"
               >
                 <Image
@@ -430,6 +470,15 @@ export default function SingleProjectClient({ project }: { project: any }) {
                   alt="Icône de recherche"
                   className="cursor-pointer"
                   onClick={handleSearchTasks}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Lancer la recherche"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSearchTasks();
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -643,6 +692,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
           isOpen={isCreateModalOpen}
           setIsOpen={setIsCreateModalOpen}
           project={project}
+          allUsers={allUsers}
           currentUserId={project.currentUserId || project.owner.id}
           onTaskCreated={(newTask: any) => {
             const taskWithColors = {
@@ -664,8 +714,13 @@ export default function SingleProjectClient({ project }: { project: any }) {
           isOpen={isEditModalOpen}
           setIsOpen={setIsEditModalOpen}
           project={currentProject}
-          onUpdate={(updatedProject: any) => setCurrentProject(updatedProject)}
+          allUsers={allUsers}
+          onUpdate={(res) => {
+            console.log("Updated project:", res.updatedProject);
+            setCurrentProject(res.updatedProject);
+          }}
         />
+
         {isIAModalOpen && (
           <CreateTaskModalWithIA
             isOpen={isIAModalOpen}

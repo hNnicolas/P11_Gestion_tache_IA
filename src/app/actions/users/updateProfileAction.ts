@@ -14,7 +14,7 @@ interface UpdateProfileInput {
 
 export interface User {
   id: string;
-  name: string; // jamais null
+  name: string;
   email: string;
   createdAt: Date;
   updatedAt: Date;

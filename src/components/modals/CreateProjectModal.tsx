@@ -25,15 +25,17 @@ export default function CreateProjectModal({
   const [form, setForm] = useState({
     name: "",
     description: "",
-    contributors: [currentUser.email],
-    contributorName: "",
   });
+
+  const [selectedContributorEmails, setSelectedContributorEmails] = useState<
+    string[]
+  >([currentUser.email]);
 
   const [showContributors, setShowContributors] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") setIsOpen(false);
     };
     if (isOpen) window.addEventListener("keydown", handleKeyDown);
@@ -48,6 +50,12 @@ export default function CreateProjectModal({
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const toggleContributor = (email: string) => {
+    setSelectedContributorEmails((prev) =>
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
+    );
+  };
+
   const handleSubmit = async () => {
     if (!form.name.trim()) return;
     setLoading(true);
@@ -56,18 +64,14 @@ export default function CreateProjectModal({
       const payload: CreateProjectInput = {
         name: form.name,
         description: form.description || undefined,
-        contributors: [...form.contributors, currentUser.email],
+        contributors: [...selectedContributorEmails, currentUser.email],
       };
 
       const newProject = await createProjectAction(payload);
       onProjectCreated(newProject);
 
-      setForm({
-        name: "",
-        description: "",
-        contributors: [],
-        contributorName: "",
-      });
+      setForm({ name: "", description: "" });
+      setSelectedContributorEmails([currentUser.email]);
       setShowContributors(false);
       setIsOpen(false);
     } catch (error) {
@@ -77,24 +81,25 @@ export default function CreateProjectModal({
     }
   };
 
-  const filteredUsers = allUsers.filter(
-    (user) =>
-      !form.contributors.includes(user.email) &&
-      user.name.toLowerCase().includes(form.contributorName.toLowerCase())
-  );
-
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black/40 z-50"
+      className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-2"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="create-project-title"
     >
-      <div className="bg-white rounded-xl p-6 w-full max-w-md">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md relative focus:outline-none">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Créer un projet</h2>
+          <h2
+            id="create-project-title"
+            className="text-xl font-bold"
+            tabIndex={0}
+          >
+            Créer un projet
+          </h2>
           <button
             onClick={() => setIsOpen(false)}
-            aria-label="Fermer"
+            aria-label="Fermer la modale"
             className="p-1 rounded hover:bg-gray-200"
           >
             <Image
@@ -102,57 +107,59 @@ export default function CreateProjectModal({
               width={20}
               height={20}
               alt="Fermer"
+              style={{ width: "auto", height: "auto" }}
             />
           </button>
         </div>
 
         <div className="flex flex-col gap-3">
-          <label
-            className="text-sm font-medium"
-            style={{ color: "var(--color-sous-texte)" }}
-          >
+          <label htmlFor="project-name" className="text-sm font-medium">
             Titre*
           </label>
           <input
+            id="project-name"
             name="name"
             value={form.name}
             onChange={handleChange}
             className="border p-2 rounded w-full"
+            required
+            aria-required="true"
           />
 
-          <label
-            className="text-sm font-medium"
-            style={{ color: "var(--color-sous-texte)" }}
-          >
-            Description*
+          <label htmlFor="project-description" className="text-sm font-medium">
+            Description
           </label>
           <textarea
+            id="project-description"
             name="description"
             value={form.description}
             onChange={handleChange}
             className="border p-2 rounded w-full"
           />
 
-          <label
-            className="text-sm font-medium"
-            style={{ color: "var(--color-sous-texte)" }}
-          >
+          <label className="text-sm font-medium mt-3 block">
             Contributeurs
           </label>
-          <div className="relative">
-            <input
-              type="text"
-              name="contributorName"
-              value={form.contributorName}
-              onChange={(e) =>
-                setForm({ ...form, contributorName: e.target.value })
-              }
-              onFocus={() => setShowContributors(true)}
-              onBlur={() => setTimeout(() => setShowContributors(false), 150)}
-              placeholder="Choisir un ou plusieurs collaborateurs"
-              className="border p-2 rounded w-full pr-10"
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 p-1">
+          <div className="relative w-full mb-5">
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Sélectionner des contributeurs"
+              aria-haspopup="listbox"
+              aria-expanded={showContributors}
+              onClick={() => setShowContributors(!showContributors)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowContributors(!showContributors);
+                }
+              }}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-8 cursor-pointer flex justify-between items-center"
+              style={{ color: "var(--color-sous-texte)" }}
+            >
+              <span style={{ color: "#9095A0" }}>
+                Choisir un ou plusieurs collaborateurs
+              </span>{" "}
               <Image
                 src="/images/icons/onglet.png"
                 width={16}
@@ -161,20 +168,36 @@ export default function CreateProjectModal({
               />
             </div>
 
-            {showContributors && filteredUsers.length > 0 && (
-              <ul className="absolute z-10 bg-white border w-full mt-1 rounded-md shadow-md max-h-40 overflow-auto">
-                {filteredUsers.map((user) => (
+            {showContributors && (
+              <ul
+                role="listbox"
+                aria-label="Liste des contributeurs"
+                className="mt-2 border border-gray-200 rounded-md bg-white shadow-sm p-2 max-h-40 overflow-auto text-sm text-gray-700 absolute w-full z-10"
+              >
+                {allUsers.map((user) => (
                   <li
-                    key={user.id}
-                    className="px-3 py-1 text-sm cursor-pointer hover:bg-gray-100"
-                    onClick={() =>
-                      setForm({
-                        ...form,
-                        contributors: [...form.contributors, user.email],
-                        contributorName: "",
-                      })
-                    }
+                    key={user.email}
+                    role="option"
+                    aria-selected={selectedContributorEmails.includes(
+                      user.email
+                    )}
+                    tabIndex={0}
+                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer flex items-center"
+                    onClick={() => toggleContributor(user.email)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleContributor(user.email);
+                      }
+                    }}
                   >
+                    <input
+                      type="checkbox"
+                      checked={selectedContributorEmails.includes(user.email)}
+                      readOnly
+                      className="mr-2"
+                      aria-hidden="true"
+                    />
                     {user.name}
                   </li>
                 ))}
@@ -182,9 +205,12 @@ export default function CreateProjectModal({
             )}
           </div>
 
-          {form.contributors.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-1">
-              {form.contributors.map((email) => {
+          {selectedContributorEmails.length > 0 && (
+            <div
+              className="flex flex-wrap gap-2 mt-1"
+              aria-label="Contributeurs sélectionnés"
+            >
+              {selectedContributorEmails.map((email) => {
                 const user = allUsers.find((u) => u.email === email);
                 return (
                   <span
@@ -204,8 +230,11 @@ export default function CreateProjectModal({
             onClick={handleSubmit}
             disabled={loading}
             className="text-[#9CA3AF] bg-[#E5E7EB] rounded-[10px] px-4 py-2 text-sm font-medium"
+            aria-label="Ajouter le projet"
+            aria-busy={loading}
+            tabIndex={0}
           >
-            {loading ? "Création..." : "+ Ajouter un projet"}
+            {loading ? "Création..." : "Ajouter un projet"}
           </button>
         </div>
       </div>

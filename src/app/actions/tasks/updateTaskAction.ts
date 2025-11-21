@@ -160,9 +160,9 @@ export const updateTaskAction = async (
 
     if (!fullTask) return sendServerError("Erreur lors du rechargement");
 
-    /*console.log(
+    console.log(
       `[TASK UPDATE SUCCESS] taskId=${taskId} projectId=${projectId}`
-    );*/
+    );
 
     return sendSuccess("Tâche mise à jour avec succès", {
       ...fullTask,

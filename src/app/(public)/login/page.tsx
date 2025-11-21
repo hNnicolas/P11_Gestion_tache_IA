@@ -28,10 +28,6 @@ export default function LoginPage() {
 
       if (!res.ok) throw new Error(data.error || "Erreur de connexion");
 
-      // Le cookie HTTP-only est déjà créé côté serveur
-      // console.log("✅ Connexion réussie :", data.user);
-
-      // Redirection page accueil
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
@@ -41,63 +37,94 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full bg-white">
-      <div className="flex flex-col justify-center items-center md:w-1/2 w-full bg-[#F9FAFB] px-8 md:px-20 py-12">
-        <div className="mb-12">
+    <main
+      className="flex flex-col md:flex-row h-screen w-full bg-#F9FAFB!"
+      role="main"
+      aria-label="Page de connexion"
+    >
+      <section
+        className="flex flex-col justify-center items-center md:w-1/2 w-full bg-[#F9FAFB] px-8 md:px-20 py-12"
+        role="region"
+        aria-labelledby="login-title"
+        tabIndex={0}
+      >
+        <div
+          className="mt-4 mb-24 md:mb-36 lg:mb-40"
+          role="img"
+          aria-label="Logo Abricot"
+          tabIndex={0}
+        >
           <Image
             src="/images/icons/logo.png"
             alt="Logo Abricot"
-            width={160}
-            height={50}
+            width={350}
+            height={80}
             style={{ height: "auto" }}
           />
         </div>
 
-        <div className="w-full max-w-sm">
-          <h1 className="text-2xl md:text-[28px] font-semibold text-[#DB7433] mb-8 md:mb-10 text-center">
+        <div
+          className="w-full max-w-sm"
+          tabIndex={0}
+          aria-labelledby="login-title"
+        >
+          <h1
+            id="login-title"
+            className="text-[45px]! md:text-[64px] font-semibold text-[#DB7433] mb-8 md:mb-10 text-center"
+            tabIndex={0}
+          >
             Connexion
           </h1>
 
           <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-5"
-            aria-labelledby="login-form-title"
+            aria-labelledby="login-title"
+            role="form"
           >
-            <label htmlFor="email" className="sr-only">
+            <label
+              htmlFor="email"
+              className="text-[14px] font-medium text-black"
+            >
               Email
             </label>
             <input
               id="email"
               type="email"
-              placeholder="Email"
+              placeholder=""
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               aria-required="true"
-              aria-label="Email"
-              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
+              aria-label="Adresse email"
+              autoComplete="username"
+              className="border border-gray-300 rounded-md px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
             />
-
-            <label htmlFor="password" className="sr-only">
+            <label
+              htmlFor="password"
+              className="text-[14px]font-medium text-black"
+            >
               Mot de passe
             </label>
             <input
               id="password"
               type="password"
-              placeholder="Mot de passe"
+              placeholder=""
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               aria-required="true"
               aria-label="Mot de passe"
-              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
+              autoComplete="current-password"
+              className="border border-gray-300 rounded-md px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
             />
 
             <button
               type="submit"
               disabled={loading}
-              className="bg-black text-white py-3 rounded-md hover:bg-gray-800 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DB7433]"
               aria-busy={loading}
+              aria-label="Bouton de connexion"
+              className="bg-black text-white py-4 px-28 rounded-[15px] hover:bg-gray-800 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DB7433] mx-auto block w-fit"
             >
               {loading ? "Connexion en cours..." : "Se connecter"}
             </button>
@@ -107,6 +134,7 @@ export default function LoginPage() {
                 className="text-red-500 text-center text-sm mt-2"
                 role="alert"
                 aria-live="assertive"
+                tabIndex={0}
               >
                 {error}
               </p>
@@ -117,23 +145,25 @@ export default function LoginPage() {
             Pas encore inscrit ?{" "}
             <Link
               href="/signup"
-              className="text-[#DB7433] hover:underline font-medium"
+              className="text-[#DB7433] hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
+              aria-label="Créer un compte"
             >
               Créer un compte
             </Link>
           </p>
         </div>
-      </div>
+      </section>
 
-      <div className="relative md:w-1/2 w-full h-full min-h-screen bg-white">
+      <div className="relative md:w-1/2 w-full h-screen">
         <Image
-          src="/images/login-page.png"
-          alt="Illustration représentant la page de connexion"
+          src="/images/login-page.jpg"
+          alt="Login illustration"
           fill
-          className="object-contain"
+          className="object-cover"
           priority
+          sizes="(max-width: 768px) 100vw, 50vw"
         />
       </div>
-    </div>
+    </main>
   );
 }

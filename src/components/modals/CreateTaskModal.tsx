@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import Image from "next/image";
 import {
   CreateTaskInput,
   createTaskAction,
 } from "@/app/actions/tasks/createTaskAction";
+import { UserForClient } from "@/app/actions/users/getAllUsersAction";
 
-// Props du composant
 type Props = {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   project: any;
   currentUserId: string;
   onTaskCreated: (task: any) => void;
+  allUsers: UserForClient[];
 };
 
 export default function CreateTaskModal({
@@ -22,26 +23,19 @@ export default function CreateTaskModal({
   project,
   currentUserId,
   onTaskCreated,
+  allUsers = [],
 }: Props) {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    dueDate: "",
-    assigneeName: "",
-  });
-  const [selectedContributorId, setSelectedContributorId] =
-    useState<string>("");
+  const [form, setForm] = useState({ title: "", description: "", dueDate: "" });
+  const [selectedContributorIds, setSelectedContributorIds] = useState<
+    string[]
+  >([]);
   const [showContributors, setShowContributors] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<
     "A faire" | "En cours" | "Terminées"
   >("A faire");
   const [loading, setLoading] = useState(false);
 
-  const statusOptions: {
-    label: "A faire" | "En cours" | "Terminées";
-    bg: string;
-    text: string;
-  }[] = [
+  const statusOptions = [
     { label: "A faire", bg: "var(--color-tag1-bg)", text: "var(--color-tag1)" },
     {
       label: "En cours",
@@ -55,15 +49,13 @@ export default function CreateTaskModal({
     },
   ];
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsOpen(false);
-    };
-    if (isOpen) window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, setIsOpen]);
-
-  if (!isOpen) return null;
+  const toggleContributor = (userId: string) => {
+    setSelectedContributorIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
 
   const handleChange = (e: any) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -73,17 +65,10 @@ export default function CreateTaskModal({
 
     setLoading(true);
     try {
-      const assigneeIds: string[] = selectedContributorId
-        ? [selectedContributorId]
-        : project.ownerId
-        ? [project.ownerId]
-        : [];
-
-      if (assigneeIds.length === 0) {
-        console.error("❌ Aucun utilisateur valide pour l'assignation");
-        setLoading(false);
-        return;
-      }
+      const assigneeIds =
+        selectedContributorIds.length > 0
+          ? selectedContributorIds
+          : [project.ownerId];
 
       const payload: CreateTaskInput = {
         title: form.title,
@@ -102,13 +87,10 @@ export default function CreateTaskModal({
         project.members,
         project.ownerId
       );
-
-      // 🔹 Mettre à jour la page parent
       onTaskCreated(newTask);
 
-      // reset form et fermer modal
-      setForm({ title: "", description: "", dueDate: "", assigneeName: "" });
-      setSelectedContributorId("");
+      setForm({ title: "", description: "", dueDate: "" });
+      setSelectedContributorIds([]);
       setSelectedStatus("A faire");
       setIsOpen(false);
     } catch (error) {
@@ -118,6 +100,16 @@ export default function CreateTaskModal({
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    if (isOpen) window.addEventListener("keydown", handleKeyDown as any);
+    return () => window.removeEventListener("keydown", handleKeyDown as any);
+  }, [isOpen, setIsOpen]);
+
+  if (!isOpen) return null;
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center bg-black/40 z-50"
@@ -126,13 +118,11 @@ export default function CreateTaskModal({
     >
       <div className="bg-white rounded-xl p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-(--color-text)">
-            Créer une tâche
-          </h2>
+          <h2 className="text-xl font-bold">Créer une tâche</h2>
           <button
             onClick={() => setIsOpen(false)}
             aria-label="Fermer la modale"
-            className="p-1 rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-(--color-principal)"
+            className="p-1 rounded hover:bg-gray-200"
           >
             <Image
               src="/images/icons/close-modal.png"
@@ -181,69 +171,64 @@ export default function CreateTaskModal({
             </div>
           </div>
 
-          <label className="text-sm font-medium">Assigné à</label>
-          <div className="relative">
-            <input
-              type="text"
-              name="assigneeName"
-              value={form.assigneeName}
-              onChange={handleChange}
-              onFocus={() => setShowContributors(true)}
-              onBlur={() => setTimeout(() => setShowContributors(false), 150)}
-              placeholder="Choisir un ou plusieurs collaborateurs"
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-10"
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 p-1">
+          <label className="text-sm font-medium mt-3 block">Assigné à</label>
+          <div className="relative w-full">
+            <div
+              role="button"
+              tabIndex={0}
+              aria-haspopup="listbox"
+              aria-expanded={showContributors}
+              onClick={() => setShowContributors(!showContributors)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowContributors(!showContributors);
+                }
+              }}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-8 cursor-pointer flex justify-between items-center"
+            >
+              <span className="text-xs! text-[#7E8390]!">
+                Choisir un ou plusieurs collaborateurs
+              </span>{" "}
               <Image
                 src="/images/icons/onglet.png"
                 width={16}
                 height={16}
-                alt="Ouvrir liste contributeurs"
+                alt="Contributeurs"
               />
             </div>
 
             {showContributors && (
               <ul
-                className="absolute z-10 bg-white border border-gray-300 w-full mt-1 rounded-md shadow-md max-h-40 overflow-auto"
+                className="mt-2 border border-gray-200 rounded-md bg-white shadow-sm p-2 max-h-40 overflow-auto text-sm text-gray-700 absolute w-full z-10"
                 role="listbox"
               >
-                {/* Propriétaire du projet */}
-                <li
-                  key={project.owner.id}
-                  className="px-3 py-1 text-sm cursor-pointer hover:bg-gray-100"
-                  onClick={() => {
-                    setForm({
-                      ...form,
-                      assigneeName: project.owner.name,
-                    });
-                    setSelectedContributorId(project.owner.id);
-                    setShowContributors(false);
-                  }}
-                  role="option"
-                  aria-selected={form.assigneeName === project.owner.name}
-                >
-                  {project.owner.name} (Propriétaire)
-                </li>
-
-                {/* Liste des contributeurs */}
-                {project.members?.map((member: any) => (
+                {allUsers.map((user) => (
                   <li
-                    key={member.user.id}
-                    className="px-3 py-1 text-sm cursor-pointer hover:bg-gray-100"
-                    onClick={() => {
-                      setForm({
-                        ...form,
-                        assigneeName: member.user?.name || member.userId,
-                      });
-                      setSelectedContributorId(member.user.id);
-                      setShowContributors(false);
-                    }}
+                    key={user.id}
                     role="option"
-                    aria-selected={
-                      form.assigneeName === (member.user?.name || member.userId)
-                    }
+                    aria-selected={selectedContributorIds.includes(user.id)}
+                    tabIndex={0}
+                    className={`px-2 py-1 hover:bg-gray-100 cursor-pointer ${
+                      user.id === project?.owner?.id ? "font-semibold" : ""
+                    }`}
+                    onClick={() => toggleContributor(user.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleContributor(user.id);
+                      }
+                    }}
                   >
-                    {member.user?.name || member.userId}
+                    <input
+                      type="checkbox"
+                      checked={selectedContributorIds.includes(user.id)}
+                      readOnly
+                      className="mr-2"
+                      aria-hidden="true"
+                    />
+                    {user.name}{" "}
+                    {user.id === project?.owner?.id && "(Propriétaire)"}
                   </li>
                 ))}
               </ul>
@@ -251,26 +236,27 @@ export default function CreateTaskModal({
           </div>
 
           <label className="text-sm font-medium mt-3 block">Statut :</label>
-          <div
-            className="flex gap-2 mt-1"
-            role="radiogroup"
-            aria-label="Sélection du statut"
-          >
+          <div className="flex gap-2 mt-1" role="radiogroup">
             {statusOptions.map((status) => (
               <span
                 key={status.label}
                 role="radio"
                 aria-checked={selectedStatus === status.label}
                 tabIndex={0}
-                className={`px-2 py-1 rounded-full text-sm font-medium cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                className={`px-2 py-1 rounded-full text-sm font-medium cursor-pointer select-none ${
                   selectedStatus === status.label ? "ring-2 ring-offset-1" : ""
                 }`}
                 style={{ backgroundColor: status.bg, color: status.text }}
-                onClick={() => setSelectedStatus(status.label)}
+                onClick={() =>
+                  setSelectedStatus(
+                    status.label as "A faire" | "En cours" | "Terminées"
+                  )
+                }
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    setSelectedStatus(status.label);
-                  }
+                  if (e.key === "Enter" || e.key === " ")
+                    setSelectedStatus(
+                      status.label as "A faire" | "En cours" | "Terminées"
+                    );
                 }}
               >
                 {status.label}
@@ -283,7 +269,7 @@ export default function CreateTaskModal({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="text-[#C9CDD5] bg-[#E5E7EB] rounded-[10px] px-4 py-2 text-sm font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9CA3AF]"
+            className="text-[#C9CDD5] bg-[#E5E7EB] rounded-[10px] px-4 py-2 text-sm font-medium hover:opacity-90"
           >
             {loading ? "Création..." : "+ Ajouter une tâche"}
           </button>

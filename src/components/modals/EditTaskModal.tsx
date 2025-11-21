@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import Image from "next/image";
 import { ITask } from "@/lib/prisma";
 import { updateTaskAction } from "@/app/actions/tasks/updateTaskAction";
@@ -18,18 +18,11 @@ type Props = {
 
 const validStatuses = ["TODO", "IN_PROGRESS", "DONE", "CANCELLED"] as const;
 type TaskStatus = (typeof validStatuses)[number];
-const validPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
-type TaskPriority = (typeof validPriorities)[number];
 
 const castStatus = (status: string): TaskStatus =>
   validStatuses.includes(status as TaskStatus)
     ? (status as TaskStatus)
     : "TODO";
-
-const castPriority = (priority: string | null | undefined): TaskPriority =>
-  priority && validPriorities.includes(priority as TaskPriority)
-    ? (priority as TaskPriority)
-    : "LOW";
 
 export default function EditTaskModal({
   isOpen,
@@ -40,10 +33,7 @@ export default function EditTaskModal({
   onTaskUpdated,
   allUsers,
 }: Props) {
-  // --- initialisation assignés existants ---
   const initialAssigneeIds = task.assignees?.map((a) => a.user.id) || [];
-  const initialAssigneeNames =
-    task.assignees?.map((a) => a.user.name ?? "") || [];
 
   const [form, setForm] = useState({
     title: task.title,
@@ -52,7 +42,6 @@ export default function EditTaskModal({
       ? new Date(task.dueDate).toISOString().substring(0, 10)
       : "",
   });
-
   const [selectedContributorIds, setSelectedContributorIds] =
     useState<string[]>(initialAssigneeIds);
   const [selectedStatus, setSelectedStatus] = useState<TaskStatus>(
@@ -127,110 +116,147 @@ export default function EditTaskModal({
       }
 
       const updatedTaskRaw = updatedTaskResponse.data;
-      const updatedTask: ITask = {
+      onTaskUpdated({
         ...updatedTaskRaw,
         status: castStatus(updatedTaskRaw.status),
-        priority: castPriority(updatedTaskRaw.priority),
-      };
-
-      onTaskUpdated(updatedTask);
+      });
       setIsOpen(false);
-      console.log("✅ Tâche mise à jour :", updatedTask);
     } catch (err) {
-      console.error("❌ Erreur modification tâche :", err);
+      console.error("Erreur modification tâche :", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyDownStatus = (
+    e: KeyboardEvent<HTMLSpanElement>,
+    status: TaskStatus
+  ) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setSelectedStatus(status);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md relative">
-        {/* Header */}
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-task-title"
+      tabIndex={-1}
+      className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-2"
+    >
+      <div className="bg-white rounded-xl p-6 w-full max-w-md relative focus:outline-none">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Modifier la tâche</h2>
-          <button onClick={() => setIsOpen(false)}>
+          <h2 id="edit-task-title" className="text-xl font-bold" tabIndex={0}>
+            Modifier
+          </h2>
+          <button
+            onClick={() => setIsOpen(false)}
+            aria-label="Fermer la modale"
+          >
             <Image
               src="/images/icons/close-modal.png"
               width={20}
               height={20}
               alt="Fermer"
+              style={{ width: "auto", height: "auto" }}
             />
           </button>
         </div>
 
         {/* Form */}
         <div className="flex flex-col gap-3">
-          <label className="text-sm font-medium">Titre*</label>
+          <label htmlFor="task-title" className="text-sm font-medium">
+            Titre
+          </label>
           <input
+            id="task-title"
             name="title"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm"
             required
+            aria-required="true"
           />
 
-          <label className="text-sm font-medium">Description</label>
+          <label htmlFor="task-description" className="text-sm font-medium">
+            Description
+          </label>
           <textarea
+            id="task-description"
             name="description"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
 
-          <label className="text-sm font-medium">Échéance</label>
+          <label htmlFor="task-dueDate" className="text-sm font-medium">
+            Échéance
+          </label>
           <input
             type="date"
+            id="task-dueDate"
             name="dueDate"
             value={form.dueDate}
             onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
 
-          {/* Contributors dropdown */}
+          <label className="text-sm font-medium mt-3 block">
+            Contributeurs
+          </label>
           <div className="relative w-full mb-5">
-            <input
-              type="text"
-              value={`${selectedContributorIds.length} contributeurs`}
-              readOnly
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Sélectionner des contributeurs"
+              aria-haspopup="listbox"
+              aria-expanded={showContributors}
               onClick={() => setShowContributors(!showContributors)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowContributors(!showContributors);
+                }
+              }}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-8 cursor-pointer"
               style={{ color: "var(--color-sous-texte)" }}
-            />
-            <div className="absolute inset-y-0 right-2 flex items-center">
-              <svg
-                className={`w-4 h-4 text-gray-500 transition-transform ${
-                  showContributors ? "rotate-180" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
+            >
+              {`${selectedContributorIds.length} contributeurs`}
             </div>
+
             {showContributors && (
-              <ul className="mt-2 border border-gray-200 rounded-md bg-white shadow-sm p-2 max-h-40 overflow-auto text-sm text-gray-700 absolute w-full z-10">
+              <ul
+                role="listbox"
+                aria-label="Liste des contributeurs"
+                className="mt-2 border border-gray-200 rounded-md bg-white shadow-sm p-2 max-h-40 overflow-auto text-sm text-gray-700 absolute w-full z-10"
+              >
                 {allUsers.map((user) => (
                   <li
                     key={user.id}
+                    role="option"
+                    aria-selected={selectedContributorIds.includes(user.id)}
+                    tabIndex={0}
                     className={`px-2 py-1 hover:bg-gray-100 cursor-pointer ${
                       user.id === project?.owner?.id ? "font-semibold" : ""
                     }`}
                     onClick={() => toggleContributor(user.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleContributor(user.id);
+                      }
+                    }}
                   >
                     <input
                       type="checkbox"
                       checked={selectedContributorIds.includes(user.id)}
                       readOnly
                       className="mr-2"
+                      aria-hidden="true"
                     />
                     {user.name}{" "}
                     {user.id === project?.owner?.id && "(Propriétaire)"}
@@ -240,12 +266,16 @@ export default function EditTaskModal({
             )}
           </div>
 
-          {/* Status */}
           <label className="text-sm font-medium mt-3 block">Statut :</label>
           <div className="flex gap-2 mt-1">
             {statusOptions.map((status) => (
               <span
                 key={status.label}
+                role="radio"
+                aria-checked={
+                  selectedStatus === statusLabelToStatus[status.label]
+                }
+                tabIndex={0}
                 className={`px-2 py-1 rounded-full text-sm font-medium cursor-pointer ${
                   selectedStatus === statusLabelToStatus[status.label]
                     ? "ring-2"
@@ -255,6 +285,9 @@ export default function EditTaskModal({
                 onClick={() =>
                   setSelectedStatus(statusLabelToStatus[status.label])
                 }
+                onKeyDown={(e) =>
+                  handleKeyDownStatus(e, statusLabelToStatus[status.label])
+                }
               >
                 {status.label}
               </span>
@@ -262,12 +295,14 @@ export default function EditTaskModal({
           </div>
         </div>
 
-        {/* Submit */}
         <div className="flex justify-start mt-5">
           <button
             onClick={handleSubmit}
             disabled={loading}
             className="text-white bg-black rounded-[10px] px-4 py-2 text-sm font-medium hover:opacity-90"
+            aria-label="Enregistrer les modifications"
+            aria-busy={loading}
+            tabIndex={0}
           >
             {loading ? "Enregistrement..." : "Enregistrer"}
           </button>

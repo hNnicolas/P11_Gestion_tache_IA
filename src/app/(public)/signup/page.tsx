@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ export default function SignupPage() {
 
     try {
       await createUserAction({ email, name, password });
-      router.push("/");
+      router.push("/login");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue");
     } finally {
@@ -29,28 +30,46 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full bg-white">
-      <div className="flex flex-col justify-center items-center md:w-1/2 w-full bg-[#F9FAFB] px-8 md:px-20 py-12">
-        {/* Logo */}
-        <div className="mb-8 md:mb-12">
+    <main
+      className="flex flex-col md:flex-row h-screen w-full bg-white"
+      role="main"
+      aria-label="Page d'inscription"
+    >
+      <section
+        className="flex flex-col justify-center items-center md:w-1/2 w-full bg-[#F9FAFB] px-8 md:px-20 py-12"
+        role="region"
+        aria-labelledby="signup-title"
+      >
+        <div
+          className="mt-4 mb-24 md:mb-36 lg:mb-40"
+          role="img"
+          aria-label="Logo Abricot"
+          tabIndex={0}
+        >
           <Image
             src="/images/icons/logo.png"
             alt="Logo Abricot"
-            width={160}
-            height={50}
+            width={350}
+            height={80}
+            style={{ height: "auto" }}
             priority
           />
         </div>
 
-        {/* Formulaire */}
         <div className="w-full max-w-sm">
-          <h1 className="text-2xl md:text-[28px] font-semibold text-[#DB7433] mb-8 md:mb-10 text-center">
+          <h1
+            id="signup-title"
+            className="text-[45px]! md:text-[64px] font-bold text-[#DB7433] mb-8 md:mb-10 text-center"
+            tabIndex={0}
+          >
             Inscription
           </h1>
 
           <form
             onSubmit={handleSubmit}
-            className="flex flex-col gap-4 md:gap-5"
+            className="flex flex-col gap-5"
+            role="form"
+            aria-labelledby="signup-title"
           >
             <label htmlFor="name" className="sr-only">
               Nom complet
@@ -63,7 +82,7 @@ export default function SignupPage() {
               onChange={(e) => setName(e.target.value)}
               aria-label="Nom complet"
               required
-              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-1 focus:ring-[#DB7433]"
+              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
             />
 
             <label htmlFor="email" className="sr-only">
@@ -77,7 +96,7 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               aria-label="Email"
               required
-              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-1 focus:ring-[#DB7433]"
+              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
             />
 
             <label htmlFor="password" className="sr-only">
@@ -91,46 +110,53 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               aria-label="Mot de passe"
               required
-              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-1 focus:ring-[#DB7433]"
+              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
             />
 
             <button
               type="submit"
               disabled={loading}
               aria-busy={loading}
-              className="bg-black text-white py-3 rounded-md hover:bg-gray-800 transition-all focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
+              aria-label="Bouton de création de compte"
+              className="bg-black text-white py-4 px-28 rounded-[15px] hover:bg-gray-800 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#DB7433] mx-auto block w-fit"
             >
               {loading ? "Création du compte..." : "S’inscrire"}
             </button>
 
             {error && (
-              <p className="text-red-500 text-center text-sm mt-2" role="alert">
+              <p
+                className="text-red-500 text-center text-sm mt-2"
+                role="alert"
+                aria-live="assertive"
+                tabIndex={0}
+              >
                 {error}
               </p>
             )}
           </form>
 
-          <p className="text-center text-sm mt-6 md:mt-8 text-gray-600">
+          <p className="text-center text-sm mt-8 text-gray-600">
             Déjà inscrit ?{" "}
-            <a
+            <Link
               href="/login"
-              className="text-[#DB7433] hover:underline font-medium focus:outline-none focus:ring-1 focus:ring-[#DB7433]"
+              className="text-[#DB7433] hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-[#DB7433]"
+              aria-label="Se connecter"
             >
               Se connecter
-            </a>
+            </Link>
           </p>
         </div>
-      </div>
-
-      <div className="relative md:w-1/2 w-full h-64 md:h-full">
+      </section>
+      <div className="relative md:w-1/2 w-full h-screen">
         <Image
-          src="/images/signup-page.png"
+          src="/images/signup-page.jpg"
           alt="Illustration d'inscription"
           fill
           className="object-cover"
           priority
+          sizes="(max-width: 768px) 100vw, 50vw"
         />
       </div>
-    </div>
+    </main>
   );
 }

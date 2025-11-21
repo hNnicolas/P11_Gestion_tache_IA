@@ -9,6 +9,7 @@ import { useUser } from "../context/UserContext";
 export default function Header() {
   const { user, setUser } = useUser();
   const [loading, setLoading] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // mobile toggle
   const pathname = usePathname();
 
   const isDashboard = pathname === "/dashboard";
@@ -58,10 +59,14 @@ export default function Header() {
     isProjects || isSingleProject ? "text-white!" : "text-[#D3580B]!";
 
   return (
-    <header className="w-full shadow-sm bg-white transition-colors duration-200">
+    <header
+      className="w-full shadow-sm bg-white transition-colors duration-200"
+      role="banner"
+    >
       <div className="flex items-center justify-between h-20 px-2 md:px-6 lg:px-10 xl:px-16 w-full max-w-full mx-auto">
+        {/* Logo */}
         <div className="shrink-0">
-          <Link href="/">
+          <Link href="/" aria-label="Accueil">
             <img
               src="/images/icons/logo.png"
               alt="Logo"
@@ -70,7 +75,12 @@ export default function Header() {
           </Link>
         </div>
 
-        <nav className="flex items-center gap-6">
+        {/* Desktop Nav */}
+        <nav
+          className="hidden md:flex items-center gap-6"
+          role="navigation"
+          aria-label="Menu principal"
+        >
           <Link
             href="/dashboard"
             className={clsx(
@@ -80,10 +90,12 @@ export default function Header() {
                 "bg-white": !isDashboard && !isProfil,
               }
             )}
+            aria-current={isDashboard ? "page" : undefined}
           >
             <img
               src={dashboardIcon}
-              alt="Tableau de bord icon"
+              alt=""
+              aria-hidden="true"
               className="h-5 w-5"
             />
             <span className={clsx(dashboardTextColor)}>Tableau de bord</span>
@@ -98,30 +110,103 @@ export default function Header() {
                 "bg-white": !isProjects && !isSingleProject && !isProfil,
               }
             )}
+            aria-current={isProjects || isSingleProject ? "page" : undefined}
           >
-            <img src={folderIcon} alt="Projets icon" className="h-5 w-5" />
+            <img
+              src={folderIcon}
+              alt=""
+              aria-hidden="true"
+              className="h-5 w-5"
+            />
             <span className={clsx(projectsTextColor)}>Projets</span>
           </Link>
         </nav>
 
-        {user && (
-          <Link
-            href="/profil"
-            className="flex items-center justify-center w-12 h-12 mr-10 rounded-full text-base font-semibold cursor-pointer transition-all duration-200 hover:opacity-80 bg-[#FFE8D9] text-[#D3580B]"
-          >
-            {initials}
-          </Link>
-        )}
+        {/* Profil / Connexion */}
+        <div className="flex items-center gap-4 mr-20">
+          {user && (
+            <Link
+              href="/profil"
+              className="flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold cursor-pointer transition-all duration-200 hover:opacity-80 bg-[#FFE8D9] text-[#D3580B]"
+              aria-label="Profil utilisateur"
+            >
+              {initials}
+            </Link>
+          )}
 
-        {!user && !loading && (
-          <Link
-            href="/login"
-            className="px-5 py-2 rounded-lg bg-black text-white hover:bg-[#1c1c1c] text-sm font-medium transition-colors duration-200"
-          >
-            Se connecter
-          </Link>
-        )}
+          {!user && !loading && (
+            <Link
+              href="/login"
+              className="px-5 py-2 rounded-lg bg-black text-white hover:bg-[#1c1c1c] text-sm font-medium transition-colors duration-200"
+              aria-label="Se connecter"
+            >
+              Se connecter
+            </Link>
+          )}
+        </div>
+
+        {/* Mobile Hamburger */}
+        <button
+          className="md:hidden px-3 py-2 rounded-md text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D3580B]"
+          aria-label="Ouvrir le menu"
+          aria-expanded={isMenuOpen}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          <span className="sr-only">Ouvrir le menu</span>
+          <div className="w-6 h-0.5 bg-black mb-1"></div>
+          <div className="w-6 h-0.5 bg-black mb-1"></div>
+          <div className="w-6 h-0.5 bg-black"></div>
+        </button>
       </div>
+
+      {/* Mobile Nav */}
+      {isMenuOpen && (
+        <nav
+          className="flex flex-col md:hidden bg-white w-full px-4 pb-4"
+          role="navigation"
+          aria-label="Menu mobile"
+        >
+          <Link
+            href="/dashboard"
+            className={clsx(
+              "flex items-center gap-3 px-5 py-3 rounded-[7px] text-sm font-medium mb-2 transition-colors duration-200 hover:text-white",
+              {
+                "bg-[#0F0F0F]": isDashboard,
+                "bg-white": !isDashboard && !isProfil,
+              }
+            )}
+            aria-current={isDashboard ? "page" : undefined}
+          >
+            <img
+              src={dashboardIcon}
+              alt=""
+              aria-hidden="true"
+              className="h-5 w-5"
+            />
+            <span className={clsx(dashboardTextColor)}>Tableau de bord</span>
+          </Link>
+
+          <Link
+            href="/projects"
+            className={clsx(
+              "flex items-center gap-2 px-10 py-3 rounded-[7px] text-sm font-medium mb-2 transition-colors duration-200 hover:text-white",
+              {
+                "bg-[#0F0F0F]": isProjects || isSingleProject,
+                "bg-white": !isProjects && !isSingleProject && !isProfil,
+              }
+            )}
+            aria-current={isProjects || isSingleProject ? "page" : undefined}
+          >
+            <img
+              src={folderIcon}
+              alt=""
+              aria-hidden="true"
+              className="h-5 w-5"
+            />
+            <span className={clsx(projectsTextColor)}>Projets</span>
+          </Link>
+        </nav>
+      )}
     </header>
   );
 }
