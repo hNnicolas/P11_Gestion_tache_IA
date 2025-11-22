@@ -7,53 +7,113 @@ import { UserForClient } from "@/app/actions/users/getAllUsersAction";
 import { searchTasksAction } from "@/app/actions/tasks/searchTasksAction";
 import { getAssignedTasksAction } from "@/app/actions/tasks/getAssignedTasksAction";
 import { useEventBus } from "@/hooks/useEventBus";
+import { ITask as PrismaITask } from "@/lib/prisma";
 
+// Type local pour les assignees afin de normaliser les données
+type Assignee = {
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+};
+
+// Props du composant DashboardClient
 type Props = {
   user: { id: string; name: string; email: string };
-  tasks: any[];
   allUsers: UserForClient[];
 };
 
 export default function DashboardClient({ user, allUsers }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<PrismaITask[]>([]);
+  const [searchResults, setSearchResults] = useState<PrismaITask[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [view, setView] = useState<"LIST" | "KANBAN">("LIST");
+
   const fullName = user.name || "";
   const [firstName, lastName] = fullName.split(" ");
 
   const { on, off } = useEventBus();
 
-  // --- Utilitaire pour mettre à jour tasks et searchResults simultanément
-  const updateTaskState = (updateFn: (prev: any[]) => any[]) => {
+  /** Normalise une tâche pour correspondre au type Prisma.ITask */
+  const normalizeTask = (t: any): PrismaITask => ({
+    id: t.id,
+    title: t.title,
+    description: t.description ?? null,
+    status: t.status,
+    dueDate: t.dueDate ? new Date(t.dueDate) : null,
+    assignees: (t.assignees ?? []).map((a: any) => ({
+      user: {
+        id: a.user.id,
+        name: a.user.name ?? null,
+        email: a.user.email ?? "",
+      },
+    })),
+    comments: (t.comments ?? []).map((c: any) => ({
+      id: c.id,
+      content: c.content,
+      author: {
+        id: c.author.id,
+        name: c.author.name ?? null,
+      },
+      createdAt: new Date(c.createdAt),
+      updatedAt: new Date(c.updatedAt),
+    })),
+    projectId: t.projectId ?? t.project?.id ?? "",
+    project: t.project ?? {
+      id: t.projectId ?? "",
+      name: "Projet inconnu",
+      description: null,
+    },
+    priority: t.priority ?? "MEDIUM",
+    creatorId: t.creatorId ?? t.project?.ownerId ?? "",
+  });
+
+  /** Filtre uniquement les tâches assignées à l'utilisateur */
+  const filterTasksForUser = (tasks: any[]) =>
+    tasks.filter((t: any) =>
+      t.assignees.some((a: any) => a.user.id === user.id)
+    );
+
+  /** Met à jour simultanément tasks et searchResults */
+  const updateTaskState = (
+    updateFn: (prev: PrismaITask[]) => PrismaITask[]
+  ) => {
     setTasks((prev) => updateFn(prev));
     setSearchResults((prev) => updateFn(prev));
   };
 
-  // --- Récupération des tâches assignées
+  /** Récupère toutes les tâches assignées à l’utilisateur connecté */
   const refreshTasks = async () => {
     try {
-      const assignedTasks = await getAssignedTasksAction();
-      setTasks(assignedTasks);
-      setSearchResults(assignedTasks);
+      const assignedTasks: any[] = await getAssignedTasksAction();
+      const userTasks: PrismaITask[] =
+        filterTasksForUser(assignedTasks).map(normalizeTask);
+      setTasks(userTasks);
+      setSearchResults(userTasks);
     } catch (err) {
       console.error("Erreur récupération tâches assignées :", err);
     }
   };
 
+  /** Écoute des événements via EventBus */
   useEffect(() => {
     refreshTasks();
 
     const handleCreated = (task: any) => {
+      if (!task.assignees.some((a: any) => a.user.id === user.id)) return;
+      const normalized = normalizeTask(task);
       updateTaskState((prev) =>
-        prev.some((t) => t.id === task.id) ? prev : [task, ...prev]
+        prev.some((t) => t.id === normalized.id) ? prev : [normalized, ...prev]
       );
     };
 
-    const handleUpdated = (updated: any) => {
+    const handleUpdated = (task: any) => {
+      if (!task.assignees.some((a: any) => a.user.id === user.id)) return;
+      const normalized = normalizeTask(task);
       updateTaskState((prev) =>
-        prev.map((t) => (t.id === updated.id ? updated : t))
+        prev.map((t) => (t.id === normalized.id ? normalized : t))
       );
     };
 
@@ -72,7 +132,7 @@ export default function DashboardClient({ user, allUsers }: Props) {
     };
   }, []);
 
-  // --- Recherche
+  /** Recherche sur les tâches assignées */
   const handleSearchTasks = async () => {
     if (!searchQuery.trim()) {
       setSearchResults(tasks);
@@ -80,25 +140,11 @@ export default function DashboardClient({ user, allUsers }: Props) {
     }
 
     const result = await searchTasksAction(searchQuery);
-
     if (result.success) {
-      const normalizedTasks = result.tasks.map((t: any) => ({
-        id: t.id,
-        title: t.title,
-        description: t.description ?? undefined,
-        status: t.status as "A faire" | "En cours" | "Terminées",
-        dueDate: t.dueDate ? new Date(t.dueDate).getTime() : undefined,
-        assignees: t.assignees ?? [],
-        comments: t.comments ?? [],
-      }));
-
-      setSearchResults((prev) => {
-        const prevFiltered = prev.filter(
-          (pt) => !normalizedTasks.some((t) => t.id === pt.id)
-        );
-        return [...normalizedTasks, ...prevFiltered];
-      });
-
+      const normalizedTasks: PrismaITask[] = filterTasksForUser(
+        result.tasks
+      ).map(normalizeTask);
+      setSearchResults(normalizedTasks);
       setSearchQuery("");
     } else {
       alert(result.message);
@@ -133,7 +179,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
               Bonjour {firstName} {lastName}, voici un aperçu de vos projets et
               tâches
             </p>
-
             <div className="flex items-center gap-4 mt-6 -ml-5">
               <button
                 className={`flex items-center gap-2 px-4 py-2 rounded-[10px] focus:outline-none focus:ring-2 ${
@@ -169,7 +214,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
               </button>
             </div>
           </div>
-
           <button
             onClick={() => setIsModalOpen(true)}
             className="bg-black text-white px-4 py-2 ml-5 rounded-[10px] text-sm font-medium hover:opacity-90 transition focus:outline-none focus:ring-2"
@@ -203,7 +247,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
               Par ordre de priorité
             </span>
           </div>
-
           <div className="flex items-center border border-gray-200 rounded-[7px] px-3 py-1.5 bg-white">
             <input
               type="text"
@@ -238,7 +281,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
         />
       </section>
 
-      {/* Modal création projet */}
       {isModalOpen && (
         <CreateProjectModal
           isOpen={isModalOpen}

@@ -43,6 +43,12 @@ export default function SingleProjectClient({ project }: { project: any }) {
     Record<string, boolean>
   >({});
 
+  const currentUser = {
+    id: project.currentUserId || project.owner.id,
+    name: project.owner.name,
+    email: project.owner.email || "",
+  };
+
   // Callback pour récupérer la tâche générée par IA
   const handleTaskCreatedByIA = async (prompt: string) => {
     try {
@@ -125,12 +131,15 @@ export default function SingleProjectClient({ project }: { project: any }) {
       case "TODO":
       case "A faire":
         return "TODO";
-      case "in progress":
+
+      case "IN_PROGRESS":
       case "En cours":
         return "IN_PROGRESS";
-      case "Done":
+
+      case "DONE":
       case "Terminées":
         return "DONE";
+
       default:
         return "TODO";
     }
@@ -193,7 +202,15 @@ export default function SingleProjectClient({ project }: { project: any }) {
     // Lorsqu'une tâche est modifiée
     const onUpdated = (updated: any) => {
       setTasks((prev) =>
-        prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
+        prev.map((t) =>
+          t.id === updated.id
+            ? {
+                ...t,
+                ...updated,
+                status: updated.statusLabel ?? t.status,
+              }
+            : t
+        )
       );
     };
 
@@ -750,6 +767,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
             isOpen={isIAModalOpen}
             setIsOpen={setIsIAModalOpen}
             projectId={project.id}
+            user={currentUser}
             onTaskCreated={handleTaskCreatedByIA}
           />
         )}

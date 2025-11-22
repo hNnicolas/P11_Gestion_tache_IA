@@ -230,15 +230,15 @@ export default function ProjectsPage() {
                     aria-label={`Équipe du projet ${project.name}`}
                   >
                     <div className="flex items-center gap-2 text-sm mb-3">
-                      <Image
-                        src="/images/icons/team.png"
-                        alt="Icône Équipe"
-                        width={18}
-                        height={18}
-                        className="object-contain opacity-90"
-                        role="img"
-                        aria-label="Icône représentant l'équipe"
-                      />
+                      <div className="relative w-5 h-5">
+                        <Image
+                          src="/images/icons/team.png"
+                          alt="Icône Équipe"
+                          fill
+                          className="object-contain opacity-90"
+                        />
+                      </div>
+
                       <span
                         tabIndex={0}
                         aria-label={`Nombre total de membres dans l'équipe: ${
@@ -250,6 +250,7 @@ export default function ProjectsPage() {
                         Équipe ({1 + project.members.length})
                       </span>
                     </div>
+
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
                         <div

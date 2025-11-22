@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ITask } from "@/lib/prisma";
 import { updateTaskAction } from "@/app/actions/tasks/updateTaskAction";
 import { UserForClient } from "@/app/actions/users/getAllUsersAction";
+import { eventBus } from "@/lib/eventBus";
 
 type Props = {
   isOpen: boolean;
@@ -116,10 +117,16 @@ export default function EditTaskModal({
       }
 
       const updatedTaskRaw = updatedTaskResponse.data;
-      onTaskUpdated({
+
+      const updatedTask = {
         ...updatedTaskRaw,
         status: castStatus(updatedTaskRaw.status),
-      });
+      };
+
+      onTaskUpdated(updatedTask);
+
+      eventBus.emit("taskUpdated", updatedTask);
+
       setIsOpen(false);
     } catch (err) {
       console.error("Erreur modification tâche :", err);

@@ -6,6 +6,7 @@ import TasksKanban from "@/components/TasksKanban";
 import EditTaskModal from "@/components/modals/EditTaskModal";
 import { UserForClient } from "@/app/actions/users/getAllUsersAction";
 import { ITask } from "@/lib/prisma";
+import { eventBus } from "@/lib/eventBus";
 
 type Props = {
   tasks: ITask[];
@@ -31,6 +32,16 @@ export default function DashboardTasksView({
   useEffect(() => {
     setTaskList(tasks);
   }, [tasks]);
+
+  useEffect(() => {
+    const unsub = eventBus.on("taskUpdated", (updated) => {
+      setTaskList((prev) =>
+        prev.map((t) => (t.id === updated.id ? updated : t))
+      );
+    });
+
+    return () => unsub();
+  }, []);
 
   const openEditModal = (task: ITask) => {
     setSelectedTask(task);

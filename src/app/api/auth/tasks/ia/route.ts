@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendSuccess, sendError } from "@/app/utils/response";
 
+/* Empêche Next de renvoyer du HTML */
+export const dynamic = "force-dynamic";
+
+/* -----------------------------------------------------
+ * CONFIG
+ * ----------------------------------------------------*/
 const apiKey = process.env.MISTRAL_API_KEY;
-if (!apiKey) throw new Error("❌ MISTRAL_API_KEY manquant dans .env.local");
 
-/* --------------------- Constants --------------------- */
+if (!apiKey) {
+  console.error("❌ MISTRAL_API_KEY manquante");
+  throw new Error("MISTRAL_API_KEY manquante");
+}
+
 const MODELS = [
   "mistral-small-latest",
   "mistral-medium-latest",
@@ -16,7 +24,9 @@ const MODELS = [
 const DEFAULT_STATUS = "TODO";
 const DEFAULT_PRIORITY = "MEDIUM";
 
-/* --------------------- Helpers --------------------- */
+/* -----------------------------------------------------
+ * UTILS
+ * ----------------------------------------------------*/
 function normalizeMistralContent(content: any): string {
   if (!content) return "";
   if (typeof content === "string") return content;
@@ -25,22 +35,14 @@ function normalizeMistralContent(content: any): string {
   return String(content);
 }
 
-async function fetchWithTimeout(url: string, options: any, timeout = 15000) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("⏳ Timeout API Mistral")),
-      timeout
-    );
-    fetch(url, options)
-      .then((res) => {
-        clearTimeout(timer);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
+function generateFallbackTask(prompt: string) {
+  let title = prompt.split("\n")[0].trim().slice(0, 80);
+  if (!title) title = "Tâche générée automatiquement";
+
+  return {
+    title,
+    description: `Généré automatiquement car le service IA était temporairement indisponible.\n\nContenu fourni :\n${prompt}`,
+  };
 }
 
 async function callMistral(model: string, prompt: string) {
@@ -51,66 +53,72 @@ async function callMistral(model: string, prompt: string) {
     temperature: 0.6,
   };
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const response: any = await fetchWithTimeout(
-        "https://api.mistral.ai/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(payload),
-        },
-        15000
-      );
-      return response;
-    } catch {
-      await new Promise((r) => setTimeout(r, 300 * attempt));
-    }
-  }
-  throw new Error(`❌ Échec appels Mistral avec modèle ${model}`);
+  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return response;
 }
 
-/* --------------------- Route --------------------- */
+/* -----------------------------------------------------
+ * ROUTE API
+ * ----------------------------------------------------*/
 export async function POST(req: NextRequest) {
   try {
+    if (req.headers.get("accept")?.includes("text/html")) {
+      return NextResponse.json(
+        { success: false, message: "HTML interdit" },
+        { status: 406 }
+      );
+    }
+
     const raw = await req.text();
     let parsed;
+
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return NextResponse.json(sendError("JSON invalide", undefined, 400), {
-        status: 400,
-      });
+      return NextResponse.json(
+        { success: false, message: "JSON invalide" },
+        { status: 400 }
+      );
     }
 
     const { prompt, projectId, assigneeIds = [] } = parsed;
 
-    if (!prompt || typeof prompt !== "string")
+    if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
-        sendError("Prompt manquant ou invalide", undefined, 400),
+        { success: false, message: "Prompt manquant" },
         { status: 400 }
       );
+    }
 
-    if (!projectId || typeof projectId !== "string")
+    if (!projectId || typeof projectId !== "string") {
       return NextResponse.json(
-        sendError("projectId manquant", undefined, 400),
+        { success: false, message: "projectId manquant" },
         { status: 400 }
       );
+    }
 
-    // Vérification projet
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project)
-      return NextResponse.json(sendError("Projet inexistant", undefined, 404), {
-        status: 404,
-      });
 
-    // Création ou récupération du SYSTEM user
+    if (!project) {
+      return NextResponse.json(
+        { success: false, message: "Projet inexistant" },
+        { status: 404 }
+      );
+    }
+
+    /* -------------------- SYSTEM BOT -------------------- */
     let systemUser = await prisma.user.findUnique({ where: { id: "SYSTEM" } });
+
     if (!systemUser) {
       systemUser = await prisma.user.create({
         data: {
@@ -122,48 +130,55 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Vérification assignés valides
+    /* ------------------ Assignees valides ------------------ */
     const validAssignees = await prisma.user.findMany({
       where: { id: { in: assigneeIds } },
       select: { id: true },
     });
+
     const validAssigneeIds = validAssignees.map((u) => u.id);
 
-    // Appel IA Mistral avec fallback modèles
-    let response: any = null;
+    /* -----------------------------------------------------
+     * APPEL MISTRAL — avec garantie de réponse
+     * ----------------------------------------------------*/
+    let generatedText: string | null = null;
+
     for (const model of MODELS) {
       try {
-        response = await callMistral(
+        const response = await callMistral(
           model,
           `Génère une tâche claire et concise.
-La première ligne sera le titre et le reste la description.
-⚠️ Ne mets aucun astérisque, aucun Markdown, aucun "Titre:" ou "Description:".
+Première ligne = Titre (80 caractères max)
+Le reste = Description
+Aucun astérisque, aucun markdown.
 Sujet : ${prompt}`
         );
-        if (response.ok) break;
-      } catch {}
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        generatedText = normalizeMistralContent(
+          data?.choices?.[0]?.message?.content
+        );
+
+        if (generatedText && generatedText.trim()) break;
+      } catch {
+        // On essaie le modèle suivant
+      }
     }
 
-    if (!response || !response.ok)
-      return NextResponse.json(
-        sendError(
-          "Impossible de générer une tâche via Mistral",
-          undefined,
-          502
-        ),
-        { status: 502 }
-      );
+    /* --------------------- FALLBACK IA INTERNE --------------------- */
+    if (!generatedText) {
+      const fb = generateFallbackTask(prompt);
+      generatedText = fb.title + "\n" + fb.description;
+    }
 
-    const data = await response.json();
-    const rawContent = data?.choices?.[0]?.message?.content;
-    const generatedText = normalizeMistralContent(rawContent);
-
-    // Découpage texte en titre et description
+    /* ------------------ Split titre/description ------------------ */
     const [firstLine, ...rest] = generatedText.split("\n");
-    const title = firstLine?.slice(0, 80).trim() || "Nouvelle tâche IA";
-    const description = rest.join("\n").trim() || generatedText;
+    const title = firstLine?.trim().slice(0, 80) || "Nouvelle tâche IA";
+    const description = rest.join("\n").trim() || "Aucune description fournie.";
 
-    // Création tâche dans Prisma
+    /* ------------------ Création Prisma ------------------ */
     const task = await prisma.task.create({
       data: {
         title,
@@ -173,20 +188,23 @@ Sujet : ${prompt}`
         priority: DEFAULT_PRIORITY,
         status: DEFAULT_STATUS,
         assignees: {
-          create: validAssigneeIds.map((userId) => ({ userId })),
+          create: validAssigneeIds.map((id) => ({ userId: id })),
         },
       },
       include: { assignees: true, comments: true },
     });
 
-    // Retourne un ApiResponse complet
-    return NextResponse.json(
-      sendSuccess("Tâche IA créée avec succès", { task })
-    );
+    /* ------------------ Retour ------------------ */
+    return NextResponse.json({
+      success: true,
+      message: "Tâche générée avec succès",
+      data: { task },
+    });
   } catch (err: any) {
-    console.error("ERREUR GLOBALE :", err);
+    console.error("🔥 ERREUR API :", err);
+
     return NextResponse.json(
-      sendError(err?.message || "Erreur serveur", undefined, 500),
+      { success: false, message: "Erreur interne", error: err?.message },
       { status: 500 }
     );
   }

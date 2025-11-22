@@ -164,10 +164,24 @@ export const updateTaskAction = async (
       `[TASK UPDATE SUCCESS] taskId=${taskId} projectId=${projectId}`
     );
 
+    const mapDBStatusToFrontend = (status: string) => {
+      switch (status) {
+        case "TODO":
+          return "A faire";
+        case "IN_PROGRESS":
+          return "En cours";
+        case "DONE":
+          return "Terminées";
+        default:
+          return "A faire";
+      }
+    };
+
     return sendSuccess("Tâche mise à jour avec succès", {
       ...fullTask,
       description: fullTask.description || "",
-      status: fullTask.status || "TODO",
+      status: fullTask.status,
+      statusLabel: mapDBStatusToFrontend(fullTask.status),
       priority: fullTask.priority || "LOW",
     });
   } catch (err: any) {

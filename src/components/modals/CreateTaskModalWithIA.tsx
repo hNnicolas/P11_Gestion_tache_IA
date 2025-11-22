@@ -15,6 +15,7 @@ type CreateModalIAProps = {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   projectId?: string;
+  user: { id: string; name: string; email: string };
   onTaskCreated?: (prompt: string) => Promise<void>;
 };
 
@@ -22,6 +23,7 @@ export default function CreateModalIA({
   isOpen,
   setIsOpen,
   projectId,
+  user,
   onTaskCreated,
 }: CreateModalIAProps) {
   const [prompt, setPrompt] = useState("");
