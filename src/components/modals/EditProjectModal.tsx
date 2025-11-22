@@ -78,6 +78,11 @@ export default function EditProjectModal({
       };
       const updatedProject = await updateProjectAction(input);
       onUpdate(updatedProject);
+
+      window.dispatchEvent(
+        new CustomEvent("projectUpdated", { detail: updatedProject })
+      );
+
       setIsOpen(false);
     } catch (error: any) {
       console.error("Erreur lors de la mise à jour :", error.message);

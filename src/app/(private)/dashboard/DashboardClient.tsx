@@ -6,6 +6,7 @@ import DashboardTasksView from "@/components/DashboardTasksView";
 import { UserForClient } from "@/app/actions/users/getAllUsersAction";
 import { searchTasksAction } from "@/app/actions/tasks/searchTasksAction";
 import { getAssignedTasksAction } from "@/app/actions/tasks/getAssignedTasksAction";
+import { useEventBus } from "@/hooks/useEventBus";
 
 type Props = {
   user: { id: string; name: string; email: string };
@@ -17,13 +18,20 @@ export default function DashboardClient({ user, allUsers }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState(tasks);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [view, setView] = useState<"LIST" | "KANBAN">("LIST");
-
   const fullName = user.name || "";
   const [firstName, lastName] = fullName.split(" ");
 
-  // Récupère les tâches assignées
+  const { on, off } = useEventBus();
+
+  // --- Utilitaire pour mettre à jour tasks et searchResults simultanément
+  const updateTaskState = (updateFn: (prev: any[]) => any[]) => {
+    setTasks((prev) => updateFn(prev));
+    setSearchResults((prev) => updateFn(prev));
+  };
+
+  // --- Récupération des tâches assignées
   const refreshTasks = async () => {
     try {
       const assignedTasks = await getAssignedTasksAction();
@@ -34,43 +42,37 @@ export default function DashboardClient({ user, allUsers }: Props) {
     }
   };
 
-  // Charge les tâches au montage
   useEffect(() => {
     refreshTasks();
 
-    const handleCreated = (e: any) => {
-      const task = e.detail;
-
-      setTasks((prev) => [task, ...prev]);
-      setSearchResults((prev) => [task, ...prev]);
+    const handleCreated = (task: any) => {
+      updateTaskState((prev) =>
+        prev.some((t) => t.id === task.id) ? prev : [task, ...prev]
+      );
     };
-    const handleUpdated = (e: any) => {
-      const updated = e.detail;
 
-      setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-
-      setSearchResults((prev) =>
+    const handleUpdated = (updated: any) => {
+      updateTaskState((prev) =>
         prev.map((t) => (t.id === updated.id ? updated : t))
       );
     };
-    const handleDeleted = (e: any) => {
-      const { id } = e.detail;
 
-      setTasks((prev) => prev.filter((t) => t.id !== id));
-      setSearchResults((prev) => prev.filter((t) => t.id !== id));
+    const handleDeleted = ({ id }: { id: string }) => {
+      updateTaskState((prev) => prev.filter((t) => t.id !== id));
     };
 
-    window.addEventListener("taskCreated", handleCreated);
-    window.addEventListener("taskUpdated", handleUpdated);
-    window.addEventListener("taskDeleted", handleDeleted);
+    on("taskCreated", handleCreated);
+    on("taskUpdated", handleUpdated);
+    on("taskDeleted", handleDeleted);
 
     return () => {
-      window.removeEventListener("taskCreated", handleCreated);
-      window.removeEventListener("taskUpdated", handleUpdated);
-      window.removeEventListener("taskDeleted", handleDeleted);
+      off("taskCreated", handleCreated);
+      off("taskUpdated", handleUpdated);
+      off("taskDeleted", handleDeleted);
     };
   }, []);
 
+  // --- Recherche
   const handleSearchTasks = async () => {
     if (!searchQuery.trim()) {
       setSearchResults(tasks);
@@ -107,8 +109,8 @@ export default function DashboardClient({ user, allUsers }: Props) {
     <div
       className="flex flex-col items-center bg-[#F9FAFB] min-h-screen py-10 pb-20"
       role="main"
-      aria-label="Tableau de bord client"
     >
+      {/* Header */}
       <section
         className="w-full max-w-[1500px] px-4 md:px-6 lg:px-8"
         role="region"
@@ -133,7 +135,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
             </p>
 
             <div className="flex items-center gap-4 mt-6 -ml-5">
-              {/* Toggle Liste / Kanban */}
               <button
                 className={`flex items-center gap-2 px-4 py-2 rounded-[10px] focus:outline-none focus:ring-2 ${
                   view === "LIST"
@@ -142,13 +143,11 @@ export default function DashboardClient({ user, allUsers }: Props) {
                 }`}
                 onClick={() => setView("LIST")}
                 aria-label="Afficher les tâches en liste"
-                role="button"
               >
                 <img
                   src="/images/icons/icon-liste.png"
                   alt="Icône liste"
                   className="h-5 w-5"
-                  tabIndex={-1}
                 />
                 <span className="font-medium text-[#E48E59]!">Liste</span>
               </button>
@@ -160,13 +159,11 @@ export default function DashboardClient({ user, allUsers }: Props) {
                 }`}
                 onClick={() => setView("KANBAN")}
                 aria-label="Afficher les tâches en kanban"
-                role="button"
               >
                 <img
                   src="/images/icons/icon-kanban.png"
                   alt="Icône kanban"
                   className="h-5 w-5"
-                  tabIndex={-1}
                 />
                 <span className="font-medium text-[#E48E59]!">Kanban</span>
               </button>
@@ -183,6 +180,7 @@ export default function DashboardClient({ user, allUsers }: Props) {
         </div>
       </section>
 
+      {/* Section tâches */}
       <section
         className="w-full max-w-[1500px] px-4 md:px-6 lg:px-8 py-6 bg-white rounded-[10px] border border-[#E5E7EB] shadow-sm mt-6"
         role="region"
@@ -225,7 +223,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
                 src="/images/icons/search.png"
                 alt="Icône de recherche"
                 className="w-4 h-4"
-                tabIndex={-1}
               />
             </button>
           </div>
@@ -241,16 +238,14 @@ export default function DashboardClient({ user, allUsers }: Props) {
         />
       </section>
 
-      {/* === MODAL CRÉATION PROJET === */}
+      {/* Modal création projet */}
       {isModalOpen && (
         <CreateProjectModal
           isOpen={isModalOpen}
           setIsOpen={setIsModalOpen}
           currentUser={user}
           allUsers={allUsers}
-          onProjectCreated={async () => {
-            await refreshTasks();
-          }}
+          onProjectCreated={refreshTasks}
         />
       )}
     </div>

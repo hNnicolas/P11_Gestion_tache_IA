@@ -71,9 +71,14 @@ export interface ITask {
 // Commentaire
 export interface IComment {
   id: string;
-  content: string;
-  author: IUser;
   taskId: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  author: {
+    id: string;
+    name: string | null; // nullable pour correspondre à Prisma
+  };
 }
 
 // Pour la création côté front (utile pour forms)

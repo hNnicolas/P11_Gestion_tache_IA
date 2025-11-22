@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { IComment, prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/app/utils/auth";
 import { hasProjectAccess } from "@/app/utils/permissions";
@@ -11,7 +11,7 @@ export async function createCommentAction(
   projectId: string,
   taskId: string,
   content: string
-): Promise<ApiResponse<{ comment: any }>> {
+): Promise<ApiResponse<{ comment: IComment }>> {
   try {
     if (!content || content.trim().length === 0) {
       return {
@@ -52,12 +52,24 @@ export async function createCommentAction(
 
     revalidatePath(`/projects/${projectId}`);
 
-    // console.log("Commentaire créé avec succès :", comment);
+    console.log("Commentaire créé avec succès :", comment);
+
+    const normalizedComment: IComment = {
+      id: comment.id,
+      taskId: comment.taskId,
+      content: comment.content,
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
+      author: {
+        id: comment.author.id,
+        name: comment.author.name ?? null,
+      },
+    };
 
     return {
       success: true,
       message: "Commentaire ajouté",
-      data: { comment },
+      data: { comment: normalizedComment },
     };
   } catch (err: any) {
     console.error("Erreur createCommentAction:", err);

@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { IComment, prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/app/utils/auth";
 import { hasProjectAccess, canModifyTasks } from "@/app/utils/permissions";
@@ -62,15 +62,28 @@ export async function updateCommentAction(commentId: string, content: string) {
       where: { id: commentId },
       data: { content: content.trim() },
       include: {
-        author: { select: { id: true, name: true, email: true } },
-        task: { select: { id: true, title: true } },
+        author: { select: { id: true, name: true } },
+        task: { select: { id: true } },
       },
     });
 
-    // console.log("Commentaire mis à jour :", updatedComment);
+    // Normalisation pour correspondre à IComment
+    const normalizedComment: IComment = {
+      id: updatedComment.id,
+      taskId: updatedComment.taskId,
+      content: updatedComment.content,
+      createdAt: new Date(updatedComment.createdAt),
+      updatedAt: new Date(updatedComment.updatedAt),
+      author: {
+        id: updatedComment.author.id,
+        name: updatedComment.author.name ?? null,
+      },
+    };
+
+    console.log("Commentaire mis à jour :", updatedComment);
 
     return sendSuccess("Commentaire mis à jour avec succès", {
-      comment: updatedComment,
+      comment: normalizedComment,
     });
   } catch (err: any) {
     console.error("updateCommentAction error:", err);

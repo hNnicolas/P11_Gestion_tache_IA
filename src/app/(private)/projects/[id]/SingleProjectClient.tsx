@@ -14,6 +14,7 @@ import {
   UserForClient,
 } from "@/app/actions/users/getAllUsersAction";
 import Comments from "@/components/Comment";
+import { eventBus } from "@/lib/eventBus";
 
 type Task = {
   id: string;
@@ -118,12 +119,6 @@ export default function SingleProjectClient({ project }: { project: any }) {
     }
   };
 
-  const statusLabelMap: Record<string, string> = {
-    TODO: "À faire",
-    "in progress": "En cours",
-    Done: "Terminée",
-  };
-
   // Mapping des statuts DB -> statusColors keys
   const normalizeStatusKey = (status: string) => {
     switch (status) {
@@ -187,6 +182,35 @@ export default function SingleProjectClient({ project }: { project: any }) {
       setAllUsers(users);
     }
     fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    // Lorsqu'une tâche est créée depuis la modale IA
+    const onCreated = (task: any) => {
+      setTasks((prev) => [task, ...prev]);
+    };
+
+    // Lorsqu'une tâche est modifiée
+    const onUpdated = (updated: any) => {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
+      );
+    };
+
+    // Lorsqu'une tâche est supprimée
+    const onDeleted = ({ id }: { id: string }) => {
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    };
+
+    eventBus.on("taskCreated", onCreated);
+    eventBus.on("taskUpdated", onUpdated);
+    eventBus.on("taskDeleted", onDeleted);
+
+    return () => {
+      eventBus.off("taskCreated", onCreated);
+      eventBus.off("taskUpdated", onUpdated);
+      eventBus.off("taskDeleted", onDeleted);
+    };
   }, []);
 
   return (

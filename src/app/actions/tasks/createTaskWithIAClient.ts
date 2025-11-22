@@ -1,11 +1,8 @@
-// Fonction pour appeler ton endpoint IA depuis le frontend
-import { ApiResponse } from "@/app/utils/response";
-
 export async function createTaskWithIAClient(
   prompt: string,
   projectId?: string,
   assigneeIds: string[] = []
-): Promise<ApiResponse> {
+) {
   try {
     const res = await fetch("/api/auth/tasks/ia", {
       method: "POST",
@@ -13,34 +10,40 @@ export async function createTaskWithIAClient(
       body: JSON.stringify({ prompt, projectId, assigneeIds }),
     });
 
-    const data = await res.json();
+    console.log("🌐 CLIENT - Status :", res.status);
 
-    // Vérifie le format ApiResponse
-    if (!data || typeof data.success !== "boolean") {
-      console.error("❌ Réponse inattendue du serveur :", data);
+    const text = await res.text();
+    console.log("🌐 CLIENT - Raw response text :", text);
+
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("❌ CLIENT - Impossible de parser JSON :", err);
       return {
         success: false,
-        message: "Réponse inattendue du serveur",
-        error: JSON.stringify(data),
-        statusCode: res.status,
+        message: "JSON invalide renvoyé par le serveur",
+        error: text,
       };
     }
 
-    if (!data.success) {
-      console.error("❌ Erreur création tâche IA :", data.message, data.error);
-      return data;
-    }
+    console.log("🌐 CLIENT - Parsed JSON :", data);
 
-    console.log("✅ Tâche IA créée avec succès :", data.data);
+    if (!data.success) {
+      console.error(
+        "❌ CLIENT - Création tâche IA échouée :",
+        data.message,
+        data.error
+      );
+    }
 
     return data;
   } catch (err: any) {
-    console.error("❌ createTaskWithIAClient :", err.message || err);
+    console.error("💥 CLIENT - ERREUR réseau :", err);
     return {
       success: false,
-      message: "Erreur lors de la création de la tâche IA",
+      message: "Erreur réseau",
       error: err.message,
-      statusCode: 500,
     };
   }
 }

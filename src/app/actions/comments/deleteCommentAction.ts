@@ -53,7 +53,7 @@ export async function deleteCommentAction(commentId: string) {
 
     await prisma.comment.delete({ where: { id: commentId } });
 
-    // console.log(`✔️ Commentaire ${commentId} supprimé avec succès (200)`);
+    console.log(`✔️ Commentaire ${commentId} supprimé avec succès (200)`);
 
     return sendSuccess("Commentaire supprimé avec succès");
   } catch (err: any) {
