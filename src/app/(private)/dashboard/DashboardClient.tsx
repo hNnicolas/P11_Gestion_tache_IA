@@ -43,13 +43,16 @@ export default function DashboardClient({ user, allUsers }: Props) {
     description: t.description ?? null,
     status: t.status,
     dueDate: t.dueDate ? new Date(t.dueDate) : null,
-    assignees: (t.assignees ?? []).map((a: any) => ({
-      user: {
-        id: a.user.id,
-        name: a.user.name ?? null,
-        email: a.user.email ?? "",
-      },
-    })),
+    assignees: Array.isArray(t.assignees)
+      ? t.assignees.map((a: any) => ({
+          user: {
+            id: a.user.id,
+            name: a.user.name ?? null,
+            email: a.user.email ?? "",
+          },
+        }))
+      : [],
+
     comments: (t.comments ?? []).map((c: any) => ({
       id: c.id,
       content: c.content,
@@ -60,20 +63,41 @@ export default function DashboardClient({ user, allUsers }: Props) {
       createdAt: new Date(c.createdAt),
       updatedAt: new Date(c.updatedAt),
     })),
+
     projectId: t.projectId ?? t.project?.id ?? "",
     project: t.project ?? {
       id: t.projectId ?? "",
       name: "Projet inconnu",
       description: null,
     },
+
     priority: t.priority ?? "MEDIUM",
     creatorId: t.creatorId ?? t.project?.ownerId ?? "",
   });
 
-  /** Filtre uniquement les tâches assignées à l'utilisateur */
+  /** NORMALISE résultats de recherche */
+  const normalizeSearchResult = (t: any): PrismaITask => ({
+    id: t.id,
+    title: t.title,
+    description: t.description ?? null,
+    status: t.status,
+    dueDate: t.dueDate ? new Date(t.dueDate) : null,
+
+    // Valeurs par défaut (car l'action ne retourne pas tout)
+    assignees: [],
+    comments: [],
+    projectId: "",
+    project: { id: "", name: "Projet inconnu", description: null },
+    priority: "MEDIUM",
+    creatorId: "",
+  });
+
+  /** Récupère les tâches assignées à l'utilisateur */
   const filterTasksForUser = (tasks: any[]) =>
-    tasks.filter((t: any) =>
-      t.assignees.some((a: any) => a.user.id === user.id)
+    tasks.filter(
+      (t: any) =>
+        Array.isArray(t.assignees) &&
+        t.assignees.some((a: any) => a.user?.id === user.id)
     );
 
   /** Met à jour simultanément tasks et searchResults */
@@ -97,7 +121,7 @@ export default function DashboardClient({ user, allUsers }: Props) {
     }
   };
 
-  /** Écoute des événements via EventBus */
+  /** Événements EventBus */
   useEffect(() => {
     refreshTasks();
 
@@ -132,7 +156,7 @@ export default function DashboardClient({ user, allUsers }: Props) {
     };
   }, []);
 
-  /** Recherche sur les tâches assignées */
+  /** Recherche de tâches — maintenant sans filtre */
   const handleSearchTasks = async () => {
     if (!searchQuery.trim()) {
       setSearchResults(tasks);
@@ -140,11 +164,12 @@ export default function DashboardClient({ user, allUsers }: Props) {
     }
 
     const result = await searchTasksAction(searchQuery);
+
+    console.log("🔍 Résultat brut du backend :", result.tasks);
+
     if (result.success) {
-      const normalizedTasks: PrismaITask[] = filterTasksForUser(
-        result.tasks
-      ).map(normalizeTask);
-      setSearchResults(normalizedTasks);
+      const normalized = result.tasks.map(normalizeSearchResult);
+      setSearchResults(normalized);
       setSearchQuery("");
     } else {
       alert(result.message);
