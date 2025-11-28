@@ -9,15 +9,6 @@ import { getAssignedTasksAction } from "@/app/actions/tasks/getAssignedTasksActi
 import { useEventBus } from "@/hooks/useEventBus";
 import { ITask as PrismaITask } from "@/lib/prisma";
 
-// Type local pour les assignees afin de normaliser les données
-type Assignee = {
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-  };
-};
-
 // Props du composant DashboardClient
 type Props = {
   user: { id: string; name: string; email: string };
@@ -83,7 +74,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
     status: t.status,
     dueDate: t.dueDate ? new Date(t.dueDate) : null,
 
-    // Valeurs par défaut (car l'action ne retourne pas tout)
     assignees: [],
     comments: [],
     projectId: "",
@@ -92,7 +82,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
     creatorId: "",
   });
 
-  /** Récupère les tâches assignées à l'utilisateur */
   const filterTasksForUser = (tasks: any[]) =>
     tasks.filter(
       (t: any) =>
@@ -100,7 +89,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
         t.assignees.some((a: any) => a.user?.id === user.id)
     );
 
-  /** Met à jour simultanément tasks et searchResults */
   const updateTaskState = (
     updateFn: (prev: PrismaITask[]) => PrismaITask[]
   ) => {
@@ -108,7 +96,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
     setSearchResults((prev) => updateFn(prev));
   };
 
-  /** Récupère toutes les tâches assignées à l’utilisateur connecté */
   const refreshTasks = async () => {
     try {
       const assignedTasks: any[] = await getAssignedTasksAction();
@@ -121,7 +108,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
     }
   };
 
-  /** Événements EventBus */
   useEffect(() => {
     refreshTasks();
 
@@ -156,7 +142,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
     };
   }, []);
 
-  /** Recherche de tâches — maintenant sans filtre */
   const handleSearchTasks = async () => {
     if (!searchQuery.trim()) {
       setSearchResults(tasks);
@@ -181,30 +166,29 @@ export default function DashboardClient({ user, allUsers }: Props) {
       className="flex flex-col items-center bg-[#F9FAFB] min-h-screen py-10 pb-20"
       role="main"
     >
-      {/* Header */}
       <section
         className="w-full max-w-[1500px] px-4 md:px-6 lg:px-8"
         role="region"
         aria-labelledby="dashboard-title"
         tabIndex={0}
       >
-        <div className="flex items-start justify-between w-full">
-          <div>
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between w-full gap-6">
+          <div className="flex flex-col pl-4 md:pl-0">
             <h1
               id="dashboard-title"
-              className="text-[--color-principal] font-semibold text-2xl -ml-5"
+              className="text-[--color-principal] font-semibold text-2xl"
               tabIndex={0}
             >
               Tableau de bord
             </h1>
             <p
-              className="small-text mt-4 -ml-5 text-[--color-sous-texte]"
+              className="small-text mt-4 text-[--color-sous-texte]"
               tabIndex={0}
             >
               Bonjour {firstName} {lastName}, voici un aperçu de vos projets et
               tâches
             </p>
-            <div className="flex items-center gap-4 mt-6 -ml-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-6">
               <button
                 className={`flex items-center gap-2 px-4 py-2 rounded-[10px] focus:outline-none focus:ring-2 ${
                   view === "LIST"
@@ -250,7 +234,6 @@ export default function DashboardClient({ user, allUsers }: Props) {
         </div>
       </section>
 
-      {/* Section tâches */}
       <section
         className="w-full max-w-[1500px] px-4 md:px-6 lg:px-8 py-6 bg-white rounded-[10px] border border-[#E5E7EB] shadow-sm mt-6"
         role="region"
