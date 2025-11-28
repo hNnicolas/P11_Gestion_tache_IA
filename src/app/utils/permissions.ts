@@ -59,7 +59,8 @@ export async function canCreateTasks(
   projectId: string | null | undefined
 ): Promise<boolean> {
   const role = await getUserProjectRole(userId, projectId);
-  return role === "OWNER" || role === "ADMIN"; // Seuls OWNER et ADMIN peuvent créer des tâches
+  const allowedRoles = ["OWNER", "ADMIN", "CONTRIBUTOR"];
+  return allowedRoles.includes(role || "");
 }
 
 /**

@@ -14,6 +14,21 @@ export type CreateTaskInput = {
   status?: "A faire" | "En cours" | "Terminées";
 };
 
+export async function getUserProjectRole(
+  userId: string | null | undefined,
+  projectId: string | null | undefined
+): Promise<"OWNER" | "ADMIN" | "CONTRIBUTOR" | null> {
+  if (!userId || !projectId) return null;
+
+  const membership = await prisma.projectMember.findFirst({
+    where: { userId, projectId },
+  });
+
+  if (!membership) return null;
+
+  return membership.role as "OWNER" | "ADMIN" | "CONTRIBUTOR";
+}
+
 // Mapping frontend -> DB
 const mapStatusToDB = (status?: "A faire" | "En cours" | "Terminées") => {
   switch (status) {

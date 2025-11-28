@@ -208,8 +208,8 @@ export default function DashboardClient({ user, allUsers }: Props) {
               <button
                 className={`flex items-center gap-2 px-4 py-2 rounded-[10px] focus:outline-none focus:ring-2 ${
                   view === "LIST"
-                    ? "bg-[#FFE8D9] text-[#E48E59]"
-                    : "bg-[#FFFFFF] text-[#E48E59]"
+                    ? "bg-[#FFE8D9] text-[#A23E00]"
+                    : "bg-[#FFFFFF] text-[#A23E00]"
                 }`}
                 onClick={() => setView("LIST")}
                 aria-label="Afficher les tâches en liste"
@@ -219,13 +219,14 @@ export default function DashboardClient({ user, allUsers }: Props) {
                   alt="Icône liste"
                   className="h-5 w-5"
                 />
-                <span className="font-medium text-[#E48E59]!">Liste</span>
+                <span className="font-medium text-[#A23E00]!">Liste</span>
               </button>
+
               <button
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 ${
                   view === "KANBAN"
-                    ? "bg-[#FFE8D9] text-[#E48E59]"
-                    : "bg-[#FFFFFF] text-[#E48E59]"
+                    ? "bg-[#FFE8D9] text-[#A23E00]"
+                    : "bg-[#FFFFFF] text-[#A23E00]"
                 }`}
                 onClick={() => setView("KANBAN")}
                 aria-label="Afficher les tâches en kanban"
@@ -235,7 +236,7 @@ export default function DashboardClient({ user, allUsers }: Props) {
                   alt="Icône kanban"
                   className="h-5 w-5"
                 />
-                <span className="font-medium text-[#E48E59]!">Kanban</span>
+                <span className="font-medium text-[#A23E00]!">Kanban</span>
               </button>
             </div>
           </div>

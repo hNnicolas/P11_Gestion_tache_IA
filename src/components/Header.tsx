@@ -9,7 +9,7 @@ import { useUser } from "../context/UserContext";
 export default function Header() {
   const { user, setUser } = useUser();
   const [loading, setLoading] = useState(true);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // mobile toggle
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
   const isDashboard = pathname === "/dashboard";
@@ -54,9 +54,9 @@ export default function Header() {
       ? "/images/icons/folder.png"
       : "/images/icons/folder-white.png";
 
-  const dashboardTextColor = isDashboard ? "text-white!" : "text-[#D3580B]!";
+  const dashboardTextColor = isDashboard ? "text-white!" : "text-[#A23E00]!";
   const projectsTextColor =
-    isProjects || isSingleProject ? "text-white!" : "text-[#D3580B]!";
+    isProjects || isSingleProject ? "text-white!" : "text-[#A23E00]!";
 
   return (
     <header
@@ -64,18 +64,16 @@ export default function Header() {
       role="banner"
     >
       <div className="flex items-center justify-between h-20 px-2 md:px-6 lg:px-10 xl:px-16 w-full max-w-full mx-auto">
-        {/* Logo */}
         <div className="shrink-0">
           <Link href="/" aria-label="Accueil">
             <img
               src="/images/icons/logo.png"
-              alt="Logo"
+              alt="Logo Abricot : le O représenté par un abricot coupé en deux"
               className="h-10 w-auto ml-10"
             />
           </Link>
         </div>
 
-        {/* Desktop Nav */}
         <nav
           className="hidden md:flex items-center gap-6"
           role="navigation"
@@ -122,12 +120,11 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* Profil / Connexion */}
         <div className="flex items-center gap-4 mr-20">
           {user && (
             <Link
               href="/profil"
-              className="flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold cursor-pointer transition-all duration-200 hover:opacity-80 bg-[#FFE8D9] text-[#D3580B]"
+              className="flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold cursor-pointer transition-all duration-200 hover:opacity-80 bg-[#FFE8D9] text-[#A23E00]"
               aria-label="Profil utilisateur"
             >
               {initials}
@@ -145,9 +142,8 @@ export default function Header() {
           )}
         </div>
 
-        {/* Mobile Hamburger */}
         <button
-          className="md:hidden px-3 py-2 rounded-md text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D3580B]"
+          className="md:hidden px-3 py-2 rounded-md text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A23E00]"
           aria-label="Ouvrir le menu"
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -159,7 +155,6 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile Nav */}
       {isMenuOpen && (
         <nav
           className="flex flex-col md:hidden bg-white w-full px-4 pb-4"
@@ -175,7 +170,6 @@ export default function Header() {
                 "bg-white": !isDashboard && !isProfil,
               }
             )}
-            aria-current={isDashboard ? "page" : undefined}
           >
             <img
               src={dashboardIcon}
@@ -195,7 +189,6 @@ export default function Header() {
                 "bg-white": !isProjects && !isSingleProject && !isProfil,
               }
             )}
-            aria-current={isProjects || isSingleProject ? "page" : undefined}
           >
             <img
               src={folderIcon}
