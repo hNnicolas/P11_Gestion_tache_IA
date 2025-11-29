@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import jwt from "jsonwebtoken";
 
-/* Empêche Next de renvoyer du HTML */
 export const dynamic = "force-dynamic";
 
 /* -----------------------------------------------------
- * CONFIG
- * ----------------------------------------------------*/
-const apiKey = process.env.MISTRAL_API_KEY;
 
-if (!apiKey) {
-  console.error("❌ MISTRAL_API_KEY manquante");
-  throw new Error("MISTRAL_API_KEY manquante");
-}
+* CONFIG
+* ----------------------------------------------------*/
+const apiKey = process.env.MISTRAL_API_KEY;
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!apiKey) throw new Error("❌ MISTRAL_API_KEY manquante");
+if (!JWT_SECRET) throw new Error("❌ JWT_SECRET manquant");
 
 const MODELS = [
   "mistral-small-latest",
@@ -23,10 +23,12 @@ const MODELS = [
 
 const DEFAULT_STATUS = "TODO";
 const DEFAULT_PRIORITY = "MEDIUM";
+const MAX_PROMPT_LENGTH = 500;
 
 /* -----------------------------------------------------
- * UTILS
- * ----------------------------------------------------*/
+
+* UTILS
+* ----------------------------------------------------*/
 function normalizeMistralContent(content: any): string {
   if (!content) return "";
   if (typeof content === "string") return content;
@@ -36,9 +38,9 @@ function normalizeMistralContent(content: any): string {
 }
 
 function generateFallbackTask(prompt: string) {
-  let title = prompt.split("\n")[0].trim().slice(0, 80);
-  if (!title) title = "Tâche générée automatiquement";
-
+  const title =
+    prompt.split("\n")[0]?.trim().slice(0, 80) ||
+    "Tâche générée automatiquement";
   return {
     title,
     description: `Généré automatiquement car le service IA était temporairement indisponible.\n\nContenu fourni :\n${prompt}`,
@@ -53,21 +55,34 @@ async function callMistral(model: string, prompt: string) {
     temperature: 0.6,
   };
 
-  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    "[https://api.mistral.ai/v1/chat/completions](https://api.mistral.ai/v1/chat/completions)",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
 
   return response;
 }
 
+function verifyJWT(token: string) {
+  if (!JWT_SECRET) throw new Error("❌ JWT_SECRET manquant");
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
+
 /* -----------------------------------------------------
- * ROUTE API
- * ----------------------------------------------------*/
+
+* ROUTE API
+* ----------------------------------------------------*/
 export async function POST(req: NextRequest) {
   try {
     if (req.headers.get("accept")?.includes("text/html")) {
@@ -77,9 +92,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Vérification JWT
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { success: false, message: "Token manquant" },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.split(" ")[1];
+    const user = verifyJWT(token);
+    if (!user)
+      return NextResponse.json(
+        { success: false, message: "Token invalide" },
+        { status: 401 }
+      );
+
+    // Parsing body
     const raw = await req.text();
     let parsed;
-
     try {
       parsed = JSON.parse(raw);
     } catch {
@@ -91,9 +123,13 @@ export async function POST(req: NextRequest) {
 
     const { prompt, projectId, assigneeIds = [] } = parsed;
 
-    if (!prompt || typeof prompt !== "string") {
+    if (
+      !prompt ||
+      typeof prompt !== "string" ||
+      prompt.length > MAX_PROMPT_LENGTH
+    ) {
       return NextResponse.json(
-        { success: false, message: "Prompt manquant" },
+        { success: false, message: "Prompt invalide ou trop long" },
         { status: 400 }
       );
     }
@@ -108,77 +144,76 @@ export async function POST(req: NextRequest) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
-
-    if (!project) {
+    if (!project)
       return NextResponse.json(
         { success: false, message: "Projet inexistant" },
         { status: 404 }
       );
-    }
 
-    /* -------------------- SYSTEM BOT -------------------- */
+    // Vérification rôle utilisateur sur projet
+    const membership = await prisma.projectMember.findFirst({
+      where: { projectId, userId: (user as any).id },
+    });
+    if (!membership)
+      return NextResponse.json(
+        { success: false, message: "Accès refusé au projet" },
+        { status: 403 }
+      );
+
+    // System bot
     let systemUser = await prisma.user.findUnique({ where: { id: "SYSTEM" } });
-
     if (!systemUser) {
       systemUser = await prisma.user.create({
         data: {
           id: "SYSTEM",
-          email: "system@auto.local",
+          email: "[system@auto.local](mailto:system@auto.local)",
           name: "System Bot",
           password: "dummy",
         },
       });
     }
 
-    /* ------------------ Assignees valides ------------------ */
+    // Assignees valides
     const validAssignees = await prisma.user.findMany({
       where: { id: { in: assigneeIds } },
       select: { id: true },
     });
-
     const validAssigneeIds = validAssignees.map((u) => u.id);
 
-    /* -----------------------------------------------------
-     * APPEL MISTRAL — avec garantie de réponse
-     * ----------------------------------------------------*/
+    // Appel Mistral
     let generatedText: string | null = null;
-
     for (const model of MODELS) {
       try {
         const response = await callMistral(
           model,
           `Génère une tâche claire et concise.
-Première ligne = Titre (80 caractères max)
-Le reste = Description
-Aucun astérisque, aucun markdown.
-Sujet : ${prompt}`
+  Première ligne = Titre (80 caractères max)
+  Le reste = Description
+  Aucun astérisque, aucun markdown.
+  Sujet : ${prompt}`
         );
 
         if (!response.ok) continue;
-
         const data = await response.json();
         generatedText = normalizeMistralContent(
           data?.choices?.[0]?.message?.content
         );
-
-        if (generatedText && generatedText.trim()) break;
-      } catch {
-        // On essaie le modèle suivant
-      }
+        if (generatedText?.trim()) break;
+      } catch {}
     }
 
-    /* --------------------- FALLBACK IA INTERNE --------------------- */
+    // Fallback IA interne
     if (!generatedText) {
       const fb = generateFallbackTask(prompt);
       generatedText = fb.title + "\n" + fb.description;
     }
 
-    /* ------------------ Split titre/description ------------------ */
+    // Split titre/description
     const [firstLine, ...rest] = generatedText.split("\n");
     const title = firstLine?.trim().slice(0, 80) || "Nouvelle tâche IA";
     const description = rest.join("\n").trim() || "Aucune description fournie.";
 
-    /* ------------------ Création Prisma ------------------ */
+    // Création Prisma
     const task = await prisma.task.create({
       data: {
         title,
@@ -187,14 +222,11 @@ Sujet : ${prompt}`
         creatorId: systemUser.id,
         priority: DEFAULT_PRIORITY,
         status: DEFAULT_STATUS,
-        assignees: {
-          create: validAssigneeIds.map((id) => ({ userId: id })),
-        },
+        assignees: { create: validAssigneeIds.map((id) => ({ userId: id })) },
       },
       include: { assignees: true, comments: true },
     });
 
-    /* ------------------ Retour ------------------ */
     return NextResponse.json({
       success: true,
       message: "Tâche générée avec succès",
@@ -202,10 +234,47 @@ Sujet : ${prompt}`
     });
   } catch (err: any) {
     console.error("🔥 ERREUR API :", err);
-
     return NextResponse.json(
       { success: false, message: "Erreur interne", error: err?.message },
       { status: 500 }
     );
   }
+}
+
+// ----------------------
+// Client-side call example
+// ----------------------
+export async function createTaskWithIAClient({
+  prompt,
+  projectId,
+  assigneeIds = [],
+  token,
+}: {
+  prompt: string;
+  projectId: string;
+  assigneeIds?: string[];
+  token: string;
+}) {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    "[http://localhost:3000](http://localhost:3000)";
+  const res = await fetch(`${baseUrl}/api/auth/tasks/ia`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ prompt, projectId, assigneeIds }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    console.error(
+      `❌ CLIENT - HTTP Error (${res.status}) :`,
+      data.message || "Unknown",
+      data.error
+    );
+    throw new Error(data.message || "Erreur inconnue");
+  }
+  return data;
 }
