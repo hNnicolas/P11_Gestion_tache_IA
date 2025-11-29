@@ -72,8 +72,19 @@ export default function SingleProjectClient({ project }: { project: any }) {
         title: taskFromIA.title,
         description: taskFromIA.description || "",
         status: "A faire",
-        assignees: taskFromIA.assignees ?? [],
-        comments: taskFromIA.comments ?? [],
+        assignees:
+          taskFromIA.assignees?.map((assignee) => ({
+            user: {
+              id: assignee.user.id,
+              name: assignee.user.name || "Unknown",
+            },
+          })) ?? [],
+        comments:
+          taskFromIA.comments?.map((comment) => ({
+            id: comment.id,
+            author: { name: comment.authorId },
+            content: comment.content,
+          })) ?? [],
       };
 
       setTasks((prev) => [normalizedTask, ...prev]);
@@ -319,7 +330,7 @@ export default function SingleProjectClient({ project }: { project: any }) {
             }`}
           >
             Contributeurs {currentProject.members.length + 1}{" "}
-            <span style={{ color: "var(--color-sous-texte)" }}>personnes</span>
+            <span className="text-(--color-text)">personnes</span>
           </p>
 
           <div className="flex flex-wrap gap-3 ml-auto" role="list">
@@ -374,8 +385,8 @@ export default function SingleProjectClient({ project }: { project: any }) {
                 <span
                   className="text-sm truncate px-2 py-0.5 rounded"
                   style={{
-                    backgroundColor: "#E5E7EB",
-                    color: "#7A808D",
+                    backgroundColor: "var(--color-button-hover)",
+                    color: "var(--color-text)",
                     borderRadius: "10px",
                   }}
                   tabIndex={0}
@@ -413,20 +424,21 @@ export default function SingleProjectClient({ project }: { project: any }) {
                   src="/images/icons/icon-liste.png"
                   width={14}
                   height={14}
-                  alt="Liste"
+                  alt=""
                 />
                 Liste
               </button>
 
               <button
-                className="flex items-center gap-2 bg-white text-(--color-principal) py-1.5 rounded-[5px] text-sm font-medium"
+                className="flex items-center gap-2 bg-white py-1.5 rounded-[5px] text-sm font-medium"
+                style={{ color: "var(--color-principal)" }}
                 aria-label="Vue calendrier"
               >
                 <Image
                   src="/images/icons/icon-calendar.png"
                   width={14}
                   height={14}
-                  alt="Calendrier"
+                  alt=""
                 />
                 Calendrier
               </button>

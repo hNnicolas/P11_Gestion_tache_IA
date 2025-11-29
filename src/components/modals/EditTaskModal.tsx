@@ -212,9 +212,12 @@ export default function EditTaskModal({
             className="border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
 
-          <label className="text-sm font-medium mt-3 block">
+          <div
+            id="contributors-label"
+            className="text-sm font-medium mt-3 block"
+          >
             Contributeurs
-          </label>
+          </div>
           <div className="relative w-full mb-5">
             <div
               role="button"
@@ -273,7 +276,9 @@ export default function EditTaskModal({
             )}
           </div>
 
-          <label className="text-sm font-medium mt-3 block">Statut :</label>
+          <div id="status-label" className="text-sm font-medium mt-3 block">
+            Statut :
+          </div>
           <div className="flex gap-2 mt-1">
             {statusOptions.map((status) => (
               <span

@@ -3,19 +3,13 @@ import { prisma } from "@/lib/prisma";
 // Type des rôles
 export type Role = "OWNER" | "ADMIN" | "CONTRIBUTOR";
 
-/**
- * Récupère le rôle de l'utilisateur dans un projet
- * @param userId
- * @param projectId
- * @returns
- */
+// Récupère le rôle de l'utilisateur dans un projet
 export async function getUserProjectRole(
   userId: string | null | undefined,
   projectId: string | null | undefined
 ): Promise<Role | null> {
   if (!userId || !projectId) return null;
 
-  // Vérifie si l'utilisateur est propriétaire → OWNER
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: { ownerId: true },
@@ -23,25 +17,17 @@ export async function getUserProjectRole(
   if (!project) return null;
   if (project.ownerId === userId) return "OWNER";
 
-  // Vérifie si l'utilisateur est membre → ADMIN ou CONTRIBUTOR
   const member = await prisma.projectMember.findFirst({
     where: { userId, projectId },
     select: { role: true },
   });
 
-  if (member?.role === "ADMIN" || member?.role === "CONTRIBUTOR") {
-    return member.role as Role;
-  }
+  if (member?.role) return member.role as Role;
 
   return null;
 }
 
-/**
- * Vérifie si un utilisateur a accès à un projet
- * @param userId
- * @param projectId
- * @returns
- */
+// OWNER, ADMIN, CONTRIBUTEUR
 export async function hasProjectAccess(
   userId: string | null | undefined,
   projectId: string | null | undefined
@@ -50,34 +36,29 @@ export async function hasProjectAccess(
   return role !== null;
 }
 
-/**
- * Vérifie si un utilisateur peut créer des tâches
- * Seuls OWNER et ADMIN peuvent créer des tâches
- */
+// OWNER + ADMIN + CONTRIBUTOR
 export async function canCreateTasks(
   userId: string | null | undefined,
   projectId: string | null | undefined
 ): Promise<boolean> {
   const role = await getUserProjectRole(userId, projectId);
-  const allowedRoles = ["OWNER", "ADMIN", "CONTRIBUTOR"];
-  return allowedRoles.includes(role || "");
+  return role === "OWNER" || role === "ADMIN" || role === "CONTRIBUTOR";
 }
 
-/**
- * Vérifie si un utilisateur peut modifier ou supprimer des tâches
- * Seuls OWNER et ADMIN peuvent modifier
- */
+// OWNER + CONTRIBUTOR
 export async function canModifyTasks(
   userId: string | null | undefined,
   projectId: string | null | undefined
 ): Promise<boolean> {
   const role = await getUserProjectRole(userId, projectId);
-  return role === "OWNER" || role === "ADMIN";
+  return role === "OWNER" || role === "CONTRIBUTOR";
 }
 
 /**
- * Vérifie si un utilisateur peut modifier un projet (OWNER ou ADMIN)
- */
+
+* Modification du projet
+* OWNER + ADMIN 
+  */
 export async function canModifyProject(
   userId: string | null | undefined,
   projectId: string | null | undefined
@@ -87,8 +68,10 @@ export async function canModifyProject(
 }
 
 /**
- * Vérifie si un utilisateur peut supprimer un projet (seul OWNER)
- */
+
+* Suppression du projet
+* OWNER uniquement
+  */
 export async function canDeleteProject(
   userId: string | null | undefined,
   projectId: string | null | undefined

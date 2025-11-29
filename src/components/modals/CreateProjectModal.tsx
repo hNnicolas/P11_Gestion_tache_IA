@@ -137,16 +137,20 @@ export default function CreateProjectModal({
             className="border p-2 rounded w-full"
           />
 
-          <label className="text-sm font-medium mt-3 block">
+          <div
+            id="contributors-label"
+            className="text-sm font-medium mt-3 block"
+          >
             Contributeurs
-          </label>
+          </div>
           <div className="relative w-full mb-5">
             <div
+              id="contributors-selector"
               role="button"
               tabIndex={0}
-              aria-label="Sélectionner des contributeurs"
               aria-haspopup="listbox"
               aria-expanded={showContributors}
+              aria-label="Sélectionner des contributeurs"
               onClick={() => setShowContributors(!showContributors)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -154,12 +158,15 @@ export default function CreateProjectModal({
                   setShowContributors(!showContributors);
                 }
               }}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-8 cursor-pointer flex justify-between items-center"
-              style={{ color: "var(--color-sous-texte)" }}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-8 cursor-pointer flex justify-between items-center text-gray-700"
             >
-              <span style={{ color: "#9095A0" }}>
-                Choisir un ou plusieurs collaborateurs
-              </span>{" "}
+              {selectedContributorEmails.length > 0
+                ? `${selectedContributorEmails.length} contributeur${
+                    selectedContributorEmails.length > 1 ? "s" : ""
+                  } sélectionné${
+                    selectedContributorEmails.length > 1 ? "s" : ""
+                  }`
+                : "Choisir un ou plusieurs collaborateurs"}
               <Image
                 src="/images/icons/onglet.png"
                 width={16}
@@ -191,11 +198,12 @@ export default function CreateProjectModal({
                       }
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedContributorEmails.includes(user.email)}
-                      readOnly
-                      className="mr-2"
+                    <span
+                      className={`mr-2 w-4 h-4 inline-block border rounded ${
+                        selectedContributorEmails.includes(user.email)
+                          ? "bg-blue-600 border-blue-600"
+                          : "bg-white border-gray-300"
+                      }`}
                       aria-hidden="true"
                     />
                     {user.name}
@@ -229,7 +237,7 @@ export default function CreateProjectModal({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="text-[#9CA3AF] bg-[#E5E7EB] rounded-[10px] px-4 py-2 text-sm font-medium"
+            className="text-gray-800 bg-gray-200 rounded-[10px] px-4 py-2 text-sm font-medium hover:bg-gray-300"
             aria-label="Ajouter le projet"
             aria-busy={loading}
             tabIndex={0}

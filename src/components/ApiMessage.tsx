@@ -55,7 +55,6 @@ export default function ApiMessage({
           )}
         </div>
 
-        {/* Bouton de fermeture accessible */}
         <button
           aria-label="Fermer la notification"
           onClick={() => setVisible(false)}

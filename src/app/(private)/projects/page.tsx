@@ -7,6 +7,8 @@ import { getProjectsAction } from "@/app/actions/projects/getProjectsAction";
 import { getProjectsProgressAction } from "@/app/actions/tasks/getAssignedTasksAction";
 import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import { deleteProjectAction } from "@/app/actions/projects/deleteProjectAction";
+import ApiMessage from "@/components/ApiMessage";
+import { ApiResponse } from "@/types";
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -22,6 +24,8 @@ export default function ProjectsPage() {
     name: string;
     email: string;
   } | null>(null);
+
+  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,15 +83,28 @@ export default function ProjectsPage() {
 
     try {
       const response = await deleteProjectAction(projectId);
+
       if (response.success) {
         setProjects((prev) => prev.filter((p) => p.id !== projectId));
-        alert(response.message);
+
+        setApiResponse({
+          success: true,
+          message: response.message || "Projet supprimé avec succès !",
+        });
       } else {
-        alert(response.message || "Erreur lors de la suppression");
+        setApiResponse({
+          success: false,
+          message: response.message || "Erreur lors de la suppression.",
+          error: response.error || undefined,
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Erreur lors de la suppression du projet");
+      setApiResponse({
+        success: false,
+        message: "Vous n'avez pas la permission de supprimer ce projet.",
+        error: error.message || "Erreur inconnue",
+      });
     }
   };
 
@@ -266,7 +283,7 @@ export default function ProjectsPage() {
                         </div>
                         <span
                           tabIndex={0}
-                          aria-label={`Rôle: Propriétaire`}
+                          aria-label="Rôle : Propriétaire"
                           className="text-sm font-medium px-2 py-0.5 rounded-full"
                           style={{
                             backgroundColor: "#FFE8D9",
@@ -321,6 +338,7 @@ export default function ProjectsPage() {
           />
         )}
       </div>
+      <ApiMessage response={apiResponse} />
     </div>
   );
 }

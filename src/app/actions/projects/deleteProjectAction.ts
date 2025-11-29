@@ -32,7 +32,7 @@ export async function deleteProjectAction(projectId: string) {
 
     // Vérifier si l'utilisateur peut supprimer le projet (OWNER)
     const canDelete = await canDeleteProject(user.userId, projectId);
-    if (!canDelete) return sendError("Permission refusée", "Forbidden", 403);
+    if (!canDelete) return sendError("Permission refusée");
 
     // Vérifier si le projet existe
     const project = await prisma.project.findUnique({

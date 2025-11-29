@@ -74,7 +74,7 @@ export default function ProfilPageClient({
       <ApiMessage response={apiResponse} />
 
       <section className="max-w-[1500px] mx-auto mt-10 bg-white p-12 rounded-[10px] border border-[#E5E7EB] shadow-sm">
-        <h2 className="text-black font-semibold text-xl">Mon compte</h2>
+        <h1 className="text-black font-semibold text-xl">Mon compte</h1>
         <p className="mt-1 mb-10 text-[--color-sous-texte]">
           {prenom} {nom}
         </p>
@@ -140,7 +140,7 @@ export default function ProfilPageClient({
           <button
             type="button"
             onClick={() => setIsPasswordModalOpen(true)}
-            className="bg-[#E5E7EB] px-6 py-3 rounded-lg small-text hover:bg-[#d4d4d4]"
+            className="px-6 py-3 rounded-lg small-text hover bg-gray-200 text-gray-800"
           >
             Changer le mot de passe
           </button>

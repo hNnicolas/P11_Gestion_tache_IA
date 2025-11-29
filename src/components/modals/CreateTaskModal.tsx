@@ -118,7 +118,9 @@ export default function CreateTaskModal({
     >
       <div className="bg-white rounded-xl p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Créer une tâche</h2>
+          <h2 id="modal-title" className="text-xl font-bold">
+            Créer une tâche
+          </h2>
           <button
             onClick={() => setIsOpen(false)}
             aria-label="Fermer la modale"
@@ -134,27 +136,37 @@ export default function CreateTaskModal({
         </div>
 
         <div className="flex flex-col gap-3">
-          <label className="text-sm font-medium">Titre*</label>
+          <label htmlFor="title" className="text-sm font-medium">
+            Titre*
+          </label>{" "}
           <input
+            id="title"
             name="title"
             value={form.title}
             onChange={handleChange}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
             required
           />
-
-          <label className="text-sm font-medium">Description</label>
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium mb-1"
+          >
+            Description
+          </label>
           <textarea
+            id="description"
             name="description"
             value={form.description}
             onChange={handleChange}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
           />
-
-          <label className="text-sm font-medium">Échéance</label>
+          <label htmlFor="dueDate" className="text-sm font-medium">
+            Échéance
+          </label>{" "}
           <div className="relative">
             <input
               type="text"
+              id="dueDate"
               name="dueDate"
               placeholder="Sélectionnez une date"
               value={form.dueDate}
@@ -162,16 +174,25 @@ export default function CreateTaskModal({
               className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-10"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+              {" "}
               <Image
                 src="/images/icons/icon-calendar.png"
                 width={16}
                 height={16}
-                alt="Échéance"
-              />
+                alt="Icône calendrier"
+              />{" "}
             </div>
           </div>
-
-          <label className="text-sm font-medium mt-3 block">Assigné à</label>
+          <label htmlFor="assigne" className="text-sm font-medium mt-3 block">
+            Assigné à
+          </label>
+          <input
+            id="assigne"
+            type="text"
+            className="sr-only"
+            aria-hidden="true"
+            tabIndex={-1}
+          />
           <div className="relative w-full">
             <div
               role="button"
@@ -187,9 +208,9 @@ export default function CreateTaskModal({
               }}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full pr-8 cursor-pointer flex justify-between items-center"
             >
-              <span className="text-xs! text-[#7E8390]!">
+              <span className="text-xs text-gray-700">
                 Choisir un ou plusieurs collaborateurs
-              </span>{" "}
+              </span>
               <Image
                 src="/images/icons/onglet.png"
                 width={16}
@@ -234,8 +255,16 @@ export default function CreateTaskModal({
               </ul>
             )}
           </div>
-
-          <label className="text-sm font-medium mt-3 block">Statut :</label>
+          <label htmlFor="status" className="text-sm font-medium mt-3 block">
+            Statut :
+          </label>
+          <input
+            id="status"
+            type="text"
+            className="sr-only"
+            aria-hidden="true"
+            tabIndex={-1}
+          />
           <div className="flex gap-2 mt-1" role="radiogroup">
             {statusOptions.map((status) => (
               <span
@@ -269,9 +298,14 @@ export default function CreateTaskModal({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="text-[#C9CDD5] bg-[#E5E7EB] rounded-[10px] px-4 py-2 text-sm font-medium hover:opacity-90"
+            className={`rounded-[10px] px-4 py-2 text-sm font-medium ${
+              loading
+                ? "bg-gray-300 text-gray-600"
+                : "bg-[#E5E7EB] text-[#1f1f1f] hover:opacity-90"
+            }`}
           >
-            {loading ? "Création..." : "+ Ajouter une tâche"}
+            {" "}
+            {loading ? "Création..." : "+ Ajouter une tâche"}{" "}
           </button>
         </div>
       </div>

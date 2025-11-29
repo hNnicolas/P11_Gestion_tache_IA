@@ -46,7 +46,7 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-[15px] text-[#111827] mb-6 flex items-center gap-2">
               {status}
-              <span className="text-[#6B7280]! bg-[#E5E7EB] px-4 py-1 rounded-[15px] text-[12px] font-medium min-w-6 text-center">
+              <span className="text-[#111827] bg-[#E5E7EB] px-4 py-1 rounded-[15px] text-[12px] font-medium min-w-6 text-center">
                 {tasksByStatus[status].length}
               </span>
             </h3>
