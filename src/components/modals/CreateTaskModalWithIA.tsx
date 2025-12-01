@@ -1,212 +1,167 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { createTaskWithIAClient } from "@/app/actions/tasks/createTaskWithIAClient";
-import { updateTaskAction } from "@/app/actions/tasks/updateTaskAction";
-import { deleteTaskAction } from "@/app/actions/tasks/deleteTaskAction";
-import { ITask } from "@/lib/prisma";
 import { eventBus } from "@/lib/eventBus";
 
-// Type pour le modal avec isNew
-type TaskForModal = ITask & { isNew?: boolean };
-
-type CreateModalIAProps = {
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  projectId?: string;
-  user: { id: string; name: string; email: string };
-  onTaskCreated?: (prompt: string) => Promise<void>;
+type TaskForModal = {
+  id: string;
+  title: string;
+  description: string | null;
+  isNew?: boolean;
 };
 
-export default function CreateModalIA({
+type Props = {
+  isOpen: boolean;
+  setIsOpen: (v: boolean) => void;
+  projectId?: string;
+};
+
+export default function CreateTaskModalWithIA({
   isOpen,
   setIsOpen,
   projectId,
-  user,
-  onTaskCreated,
-}: CreateModalIAProps) {
+}: Props) {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [tasks, setTasks] = useState<TaskForModal[]>([]);
   const [view, setView] = useState<"generate" | "list">("generate");
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const modalRef = useRef<HTMLDivElement>(null);
-  const firstFocusableRef = useRef<HTMLButtonElement>(null);
-  const lastFocusableRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
-  // Normalise les données reçues depuis l'API IA pour correspondre à ITask
-  const normalizeTask = (t: any, projectId: string): TaskForModal => ({
-    id: t.id,
-    title: t.title,
-    description: t.description ?? null,
-    status: t.status ?? "TODO",
-    priority: t.priority ?? "MEDIUM",
-    projectId,
-    project: {
-      id: projectId,
-      name: t.project?.name ?? "",
-      description: t.project?.description ?? null,
-    },
-    assignees:
-      t.assignees?.map((a: any) => ({
-        user: {
-          id: a.userId,
-          name: a.name ?? null,
-          email: a.email ?? "",
-        },
-      })) ?? [],
-    comments:
-      t.comments?.map((c: any) => ({
-        id: c.id,
-        content: c.content,
-        author: { id: c.authorId, name: c.authorName ?? null },
-        createdAt: new Date(c.createdAt),
-        updatedAt: new Date(c.updatedAt),
-      })) ?? [],
-    dueDate: t.dueDate ? new Date(t.dueDate) : null,
-    creatorId: t.creatorId ?? "",
-    isNew: true,
-  });
+  useEffect(() => {
+    if (!isOpen) {
+      setPrompt("");
+      setTasks([]);
+      setView("generate");
+    }
+  }, [isOpen]);
 
-  // Gestion du clavier (ESC pour fermer, Enter pour générer, Tab pour focus trap)
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (!isOpen) return;
-
       if (e.key === "Escape") setIsOpen(false);
-      if (e.key === "Enter" && view === "generate") handleGenerate();
-
-      // Focus trap
-      if (e.key === "Tab" && modalRef.current) {
-        const focusableEls = modalRef.current.querySelectorAll<
-          HTMLButtonElement | HTMLInputElement | HTMLTextAreaElement
-        >(
-          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
-        );
-        if (focusableEls.length === 0) return;
-
-        const firstEl = focusableEls[0];
-        const lastEl = focusableEls[focusableEls.length - 1];
-
-        if (!e.shiftKey && document.activeElement === lastEl) {
-          e.preventDefault();
-          firstEl.focus();
-        }
-        if (e.shiftKey && document.activeElement === firstEl) {
-          e.preventDefault();
-          lastEl.focus();
-        }
-      }
+      if (e.key === "Enter" && view === "generate") void handleGenerate();
     };
-
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [view, prompt, isOpen]);
+  }, [isOpen, view, prompt]);
 
-  // Clic extérieur pour fermer la modal
-  useEffect(() => {
-    if (!isOpen) return;
+  const normalizeTask = (t: any): TaskForModal => ({
+    id: t.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    title: t.title ?? "",
+    description: t.description ?? null,
+    isNew: true,
+  });
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    window.addEventListener("mousedown", handleClickOutside);
-    return () => window.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
-
-  // Génération IA
-  const handleGenerate = async () => {
+  async function handleGenerate() {
     if (!prompt.trim() || !projectId) return;
-
     setLoading(true);
     try {
-      const res = await createTaskWithIAClient(prompt, projectId);
-      if (!res.success || !res.data?.task) return;
+      const INSTRUCTIONS = `
+Si le prompt correspond à UNE tâche déjà existante → réponds STRICTEMENT "DOUBLON".
+Sinon → génère une ou plusieurs tâches :
+- Ligne 1 = titre (max 80 caractères)
+- Lignes suivantes = description sans markdown
+`.trim();
 
-      const tasksData = Array.isArray(res.data.task)
-        ? res.data.task
-        : [res.data.task];
+      const ragPrompt = `CONTEXTE :\nAucune tâche client (RAG server-side)\n\nINSTRUCTIONS :\n${INSTRUCTIONS}\n\nPROMPT :\n${prompt}`;
 
-      const newTasks = tasksData.map((t: any) => normalizeTask(t, projectId));
+      const res: any = await createTaskWithIAClient({
+        prompt: ragPrompt,
+        projectId,
+      });
 
-      // On met à jour le state local pour lister les tâches
-      setTasks((prev) => [...prev, ...newTasks]);
+      if (!res || !res.success) {
+        alert("Erreur lors de la génération IA.");
+        return;
+      }
+
+      if (res.duplicate) {
+        alert("❌ Cette tâche existe déjà (DOUBLON).");
+        return;
+      }
+
+      const generatedTasks = res.tasks ?? [];
+      if (!Array.isArray(generatedTasks) || generatedTasks.length === 0) {
+        alert("Aucune tâche générée.");
+        return;
+      }
+
+      const mapped = generatedTasks.map((t: any) =>
+        normalizeTask({
+          id: `${Date.now()}-${Math.random()}`,
+          title: t.title,
+          description: t.description,
+        })
+      );
+
+      setTasks((prev) => [...prev, ...mapped]);
       setView("list");
-      setPrompt("");
-
-      // On émet directement chaque tâche vers le parent
-      newTasks.forEach((task: ITask) => eventBus.emit("taskCreated", task));
+    } catch (err) {
+      console.error("handleGenerate error:", err);
+      alert("Erreur lors de la génération IA.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleAddTask = async () => {
+  async function handleAddTasksToProject() {
     if (!projectId || tasks.length === 0) return;
-
     setLoading(true);
+
     try {
-      for (const task of tasks) {
-        if (task.isNew) {
-          const res = await createTaskWithIAClient(task.title, projectId);
-          if (res.success && res.data?.task) {
-            const savedTask = normalizeTask(res.data.task, projectId);
-            eventBus.emit("taskCreated", savedTask);
+      for (const t of tasks) {
+        try {
+          const res = await fetch(`/api/projects/${projectId}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: t.title,
+              description: t.description ?? "",
+            }),
+          });
+
+          const data = await res.json();
+          console.log("Task added to Prisma:", data);
+
+          if (res.ok && data?.success && data?.task) {
+            eventBus.emit("taskCreated", data.task);
+          } else {
+            console.error("❌ Error adding task:", data);
           }
-        } else {
-          // Déjà créé, on émet pour s'assurer que le parent le reçoit
-          eventBus.emit("taskCreated", task);
+        } catch (err) {
+          console.error("❌ Network or server error adding task:", err);
         }
       }
 
-      // Réinitialisation du modal après ajout
       setTasks([]);
       setView("generate");
       setPrompt("");
       setIsOpen(false);
+    } catch (err) {
+      console.error("❌ handleAddTasksToProject error:", err);
+      alert("Erreur lors de l'ajout des tâches.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  // Mise à jour titre/description
-  const handleUpdateTask = async (task: TaskForModal) => {
-    if (!projectId) return;
+  function handleDelete(id: string) {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
 
-    const res = await updateTaskAction(projectId, task.id, {
-      title: task.title,
-      description: task.description || "",
-    });
-
-    if (!res.success) {
-      alert(res.message);
-      return;
-    }
-
-    const updatedTask: TaskForModal = normalizeTask(res.data, projectId);
+  function handleUpdateField(
+    id: string,
+    field: "title" | "description",
+    value: string
+  ) {
     setTasks((prev) =>
-      prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
+      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
     );
-    eventBus.emit("taskUpdated", updatedTask);
-  };
-
-  const handleDeleteTask = async (task: TaskForModal) => {
-    if (!projectId) return;
-
-    const res = await deleteTaskAction(projectId, task.id);
-    if (!res.success) {
-      alert(res.message);
-      return;
-    }
-
-    setTasks((prev) => prev.filter((t) => t.id !== task.id));
-    eventBus.emit("taskDeleted", { id: task.id });
-  };
+  }
 
   if (!isOpen) return null;
 
@@ -214,23 +169,21 @@ export default function CreateModalIA({
     <div
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
     >
       <div
         ref={modalRef}
         className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl h-[800px] flex flex-col"
       >
-        {/* Header */}
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center gap-2">
             <Image
               src="/images/icons/star.png"
               width={20}
               height={20}
-              alt="star icon"
+              alt="star"
             />
-            <h2 id="modal-title" className="text-xl font-semibold">
+            <h2 className="text-xl font-semibold">
               {view === "generate"
                 ? "Créer une tâche avec IA"
                 : "Vos tâches..."}
@@ -242,54 +195,17 @@ export default function CreateModalIA({
               setIsOpen(false);
               setPrompt("");
             }}
-            aria-label="Fermer la modal"
-            ref={firstFocusableRef}
+            aria-label="Fermer"
           >
             <Image
               src="/images/icons/close-modal.png"
               width={22}
               height={22}
-              alt="close icon"
+              alt="close"
             />
           </button>
         </div>
 
-        {/* Vue Génération */}
-        {view === "generate" && (
-          <div className="flex flex-col justify-end flex-1">
-            <div className="mt-auto bg-[#F9FAFB] rounded-[20px] p-3 flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Décrivez une tâche que vous souhaitez ajouter..."
-                className="flex-1 bg-transparent outline-none px-2 py-2"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                aria-label="Description de la tâche"
-              />
-              <button
-                onClick={handleGenerate}
-                disabled={loading}
-                aria-label="Générer tâche IA"
-                className="focus:ring-2 focus:ring-black rounded-full"
-                ref={lastFocusableRef}
-              >
-                <Image
-                  src="/images/icons/button-IA.png"
-                  width={38}
-                  height={38}
-                  alt="generate icon"
-                />
-              </button>
-            </div>
-            {loading && (
-              <p className="text-xs text-gray-500 mt-2">
-                ✨ Génération en cours...
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Vue Liste */}
         {view === "list" && (
           <div className="flex flex-col h-full">
             <div
@@ -301,77 +217,49 @@ export default function CreateModalIA({
                 <div
                   key={task.id}
                   className="bg-white border border-[#E5E7EB] rounded-[20px] p-5 shadow-sm"
-                  role="group"
-                  aria-labelledby={`task-title-${task.id}`}
                 >
                   <input
-                    id={`task-title-${task.id}`}
+                    value={task.title}
+                    onChange={(e) =>
+                      handleUpdateField(task.id, "title", e.target.value)
+                    }
                     className="w-full outline-none text-lg font-semibold mb-1"
-                    value={task.title || ""}
-                    onChange={(e) =>
-                      setTasks((prev) =>
-                        prev.map((t) =>
-                          t.id === task.id ? { ...t, title: e.target.value } : t
-                        )
-                      )
-                    }
-                    disabled={editingTaskId !== task.id}
-                    aria-label="Titre de la tâche"
                   />
-
                   <textarea
-                    className="w-full outline-none text-sm text-gray-600 mb-4 resize-none"
-                    value={task.description || ""}
+                    value={task.description ?? ""}
                     onChange={(e) =>
-                      setTasks((prev) =>
-                        prev.map((t) =>
-                          t.id === task.id
-                            ? { ...t, description: e.target.value }
-                            : t
-                        )
-                      )
+                      handleUpdateField(task.id, "description", e.target.value)
                     }
-                    disabled={editingTaskId !== task.id}
-                    aria-label="Description de la tâche"
+                    className="w-full outline-none text-sm text-gray-600 mb-4 resize-none"
+                    rows={3}
                   />
-
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <button
-                      onClick={async () => {
-                        await handleDeleteTask(task);
-                      }}
+                      onClick={() => handleDelete(task.id)}
                       className="flex items-center gap-1 hover:opacity-70"
-                      aria-label={`Supprimer la tâche ${task.title}`}
                     >
                       <Image
                         src="/images/icons/drop.png"
                         width={16}
                         height={16}
-                        alt="delete icon"
+                        alt="delete"
                       />
                       Supprimer
                     </button>
-
                     <span className="text-gray-300">|</span>
                     <button
-                      onClick={async () => {
-                        if (editingTaskId === task.id) {
-                          await handleUpdateTask(task);
-                          setEditingTaskId(null);
-                        } else {
-                          setEditingTaskId(task.id);
-                        }
-                      }}
+                      onClick={() =>
+                        setEditingId(editingId === task.id ? null : task.id)
+                      }
                       className="flex items-center gap-1 hover:opacity-70"
-                      aria-label={`Modifier la tâche ${task.title}`}
                     >
                       <Image
                         src="/images/icons/edit.png"
                         width={14}
                         height={14}
-                        alt="edit icon"
+                        alt="edit"
                       />
-                      {editingTaskId === task.id ? "Enregistrer" : "Modifier"}
+                      {editingId === task.id ? "Fin édition" : "Modifier"}
                     </button>
                   </div>
                 </div>
@@ -379,9 +267,8 @@ export default function CreateModalIA({
             </div>
 
             <button
+              onClick={handleAddTasksToProject}
               className="bg-black text-white rounded-full px-6 py-2 text-sm font-medium mb-3 hover:opacity-90 mx-auto"
-              onClick={handleAddTask}
-              aria-label="Ajouter les tâches"
             >
               + Ajouter les tâches
             </button>
@@ -393,24 +280,48 @@ export default function CreateModalIA({
                 className="flex-1 bg-transparent outline-none px-2 py-2"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                aria-label="Nouvelle tâche"
+                onKeyDown={(e) => e.key === "Enter" && void handleGenerate()}
               />
               <button
                 onClick={handleGenerate}
                 disabled={loading}
-                className="focus:ring-2 focus:ring-black rounded-full"
                 aria-label="Ajouter tâche IA"
+                className="rounded-full w-10 h-10 flex items-center justify-center bg-orange-500"
               >
                 <Image
                   src="/images/icons/button-IA.png"
-                  width={34}
-                  height={34}
-                  alt="add icon"
+                  width={18}
+                  height={18}
+                  alt="ia"
                 />
               </button>
             </div>
+          </div>
+        )}
 
+        {view === "generate" && (
+          <div className="flex flex-col justify-end flex-1">
+            <div className="mt-auto bg-[#F9FAFB] rounded-[20px] p-3 flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Décrivez une tâche que vous souhaitez ajouter..."
+                className="flex-1 bg-transparent outline-none px-2 py-2"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+              />
+              <button
+                onClick={handleGenerate}
+                disabled={loading}
+                className="rounded-full w-10 h-10 flex items-center justify-center bg-orange-500"
+              >
+                <Image
+                  src="/images/icons/star-white.png"
+                  width={14}
+                  height={14}
+                  alt="étoile blanche"
+                />
+              </button>
+            </div>
             {loading && (
               <p className="text-xs text-gray-500 mt-2">
                 ✨ Génération en cours...

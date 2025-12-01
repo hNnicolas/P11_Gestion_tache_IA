@@ -1,4 +1,3 @@
-// src/app/actions/createUser.ts
 "use client";
 
 import { validateRegisterData } from "@/app/utils/validation";
@@ -9,7 +8,6 @@ export async function createUserAction(data: {
   name: string;
   password: string;
 }) {
-  // ✅ Validation frontend
   const errors: ValidationError[] = validateRegisterData(data);
   if (errors.length > 0) {
     const message = errors.map((e) => `${e.field}: ${e.message}`).join("\n");
@@ -18,7 +16,6 @@ export async function createUserAction(data: {
 
   const { email, name, password } = data;
 
-  // Appel du backend Next.js pour créer l'utilisateur
   const res = await fetch("/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

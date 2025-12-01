@@ -3,7 +3,7 @@
 import { IComment, prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/app/utils/auth";
-import { hasProjectAccess, canModifyTasks } from "@/app/utils/permissions";
+import { hasProjectAccess } from "@/app/utils/permissions";
 import {
   sendSuccess,
   sendError,

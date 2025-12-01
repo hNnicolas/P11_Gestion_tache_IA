@@ -1,5 +1,3 @@
-// Compatible Server Actions et API routes sans Express
-
 export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
@@ -8,7 +6,6 @@ export interface ApiResponse<T = any> {
   statusCode?: number;
 }
 
-// ---- Succès ----
 export const sendSuccess = <T>(
   message: string,
   data?: T,
@@ -22,7 +19,6 @@ export const sendSuccess = <T>(
   };
 };
 
-// ---- Erreur générale ----
 export const sendError = (
   message: string,
   error?: string,
@@ -50,7 +46,6 @@ export const sendValidationError = (
   };
 };
 
-// ---- Erreur serveur ----
 export const sendServerError = (
   message: string = "Erreur interne du serveur",
   error?: string
@@ -63,7 +58,6 @@ export const sendServerError = (
   };
 };
 
-// ---- Erreur d'authentification ----
 export const sendAuthError = (
   message: string = "Non autorisé"
 ): ApiResponse => {

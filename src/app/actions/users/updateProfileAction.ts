@@ -43,14 +43,12 @@ export async function updateProfileAction({
     throw new Error("Token invalide");
   }
 
-  // --- Validation ---
   const errors = validateUpdateProfileData({ name, email });
   if (errors.length > 0) {
     console.error("[updateProfileAction] Erreurs de validation:", errors);
     throw new Error(errors[0].message);
   }
 
-  // --- Vérifier si l'email existe déjà ---
   if (email && email.toLowerCase() !== decoded.email.toLowerCase()) {
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
@@ -64,7 +62,6 @@ export async function updateProfileAction({
     }
   }
 
-  // --- Mise à jour dans Prisma ---
   let updatedUserRaw;
   try {
     updatedUserRaw = await prisma.user.update({
@@ -86,7 +83,6 @@ export async function updateProfileAction({
     throw new Error("Erreur lors de la mise à jour du profil");
   }
 
-  // --- Normaliser les valeurs pour TypeScript ---
   const updatedUser: User = {
     ...updatedUserRaw,
     name: updatedUserRaw.name ?? "",

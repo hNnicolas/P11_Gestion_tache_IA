@@ -1,5 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+axios-1.7.2.tgz
+
 # dependencies
 /node_modules
 /.pnp
@@ -9,6 +11,8 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+
+
 
 # testing
 /coverage

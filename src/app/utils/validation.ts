@@ -1,11 +1,4 @@
-/* -----------------------------------------
-   Types
------------------------------------------ */
 export type ValidationError = { field: string; message: string };
-
-/* -----------------------------------------
-   Validators — Fonctions utilitaires
------------------------------------------ */
 
 /** Vérifie que l'email est valide */
 export const isValidEmail = (email: string): boolean => {
@@ -25,9 +18,6 @@ export const isValidDate = (dateString: string): boolean => {
   return !isNaN(date.getTime());
 };
 
-/* -----------------------------------------
-   Validation - Registration
------------------------------------------ */
 export const validateRegisterData = (data: {
   email: string;
   password: string;
@@ -64,9 +54,6 @@ export const validateRegisterData = (data: {
   return errors;
 };
 
-/* -----------------------------------------
-   Validation - Login
------------------------------------------ */
 export const validateLoginData = (data: {
   email: string;
   password: string;
@@ -84,9 +71,6 @@ export const validateLoginData = (data: {
   return errors;
 };
 
-/* -----------------------------------------
-   Validation - Update Profile
------------------------------------------ */
 export const validateUpdateProfileData = (data: {
   name?: string;
   email?: string;
@@ -113,9 +97,6 @@ export const validateUpdateProfileData = (data: {
   return errors;
 };
 
-/* -----------------------------------------
-   Validation - Update Password
------------------------------------------ */
 export const validateUpdatePasswordData = (data: {
   currentPassword: string;
   newPassword: string;
@@ -154,9 +135,6 @@ export const validateUpdatePasswordData = (data: {
   return errors;
 };
 
-/* -----------------------------------------
-   Validation - Update Task
------------------------------------------ */
 export const validateUpdateTaskData = (data: {
   title?: string;
   description?: string;
@@ -228,10 +206,6 @@ export const validateUpdateTaskData = (data: {
 
   return errors;
 };
-
-/* -----------------------------------------
-   Validation - Update Comment
------------------------------------------ */
 export const validateUpdateCommentData = (data: {
   content?: string;
 }): ValidationError[] => {

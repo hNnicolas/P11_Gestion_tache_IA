@@ -54,11 +54,6 @@ export async function canModifyTasks(
   return role === "OWNER" || role === "CONTRIBUTOR";
 }
 
-/**
-
-* Modification du projet
-* OWNER + ADMIN 
-  */
 export async function canModifyProject(
   userId: string | null | undefined,
   projectId: string | null | undefined
@@ -67,11 +62,6 @@ export async function canModifyProject(
   return role === "OWNER" || role === "ADMIN";
 }
 
-/**
-
-* Suppression du projet
-* OWNER uniquement
-  */
 export async function canDeleteProject(
   userId: string | null | undefined,
   projectId: string | null | undefined

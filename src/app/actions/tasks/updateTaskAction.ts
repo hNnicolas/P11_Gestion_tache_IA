@@ -29,12 +29,10 @@ export const updateTaskAction = async (
   data: UpdateTaskInput
 ) => {
   try {
-    // --- Auth ---
     const user = await getUser();
     if (!user?.id) return sendAuthError("Utilisateur non authentifié");
     const userId = user.id;
 
-    // --- Permissions ---
     const access = await hasProjectAccess(userId, projectId);
     if (!access) return sendError("Accès refusé au projet");
 
@@ -46,7 +44,6 @@ export const updateTaskAction = async (
         403
       );
 
-    // --- Validation ---
     const errors = validateUpdateTaskData(data);
     if (errors.length > 0) {
       return sendValidationError(
@@ -55,7 +52,6 @@ export const updateTaskAction = async (
       );
     }
 
-    // --- Vérification tâche ---
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: { assignees: true },
@@ -64,7 +60,6 @@ export const updateTaskAction = async (
       return sendError("Tâche introuvable", undefined, 404);
     }
 
-    // --- Synchronisation contributeurs / assignés ---
     if (data.assigneeIds !== undefined) {
       const projectInfo = await prisma.project.findUnique({
         where: { id: projectId },
@@ -81,13 +76,10 @@ export const updateTaskAction = async (
         ...projectInfo.members.map((m) => m.userId),
       ];
 
-      // Assignés actuels de la tâche
       const currentAssignees = task.assignees.map((a) => a.userId);
 
-      // Nouveaux assignés
       const newAssignees = data.assigneeIds;
 
-      // --- Ajoute les nouveaux contributeurs ---
       for (const userId of newAssignees) {
         if (!projectMemberIds.includes(userId)) {
           console.log(`➡ Ajout du contributeur ${userId} au projet`);
@@ -104,7 +96,6 @@ export const updateTaskAction = async (
         }
       }
 
-      // --- Retire les contributeurs supprimés ---
       const removed = currentAssignees.filter(
         (id) => !newAssignees.includes(id)
       );
@@ -122,11 +113,9 @@ export const updateTaskAction = async (
         });
       }
 
-      // --- Mise à jour des assignations de la tâche ---
       await updateTaskAssignments(taskId, data.assigneeIds);
     }
 
-    // --- Prépare payload ---
     const updatePayload: any = {};
     if (data.title !== undefined) updatePayload.title = data.title.trim();
     if (data.description !== undefined)
@@ -136,18 +125,15 @@ export const updateTaskAction = async (
     if (data.dueDate !== undefined)
       updatePayload.dueDate = data.dueDate ? new Date(data.dueDate) : null;
 
-    // --- Mise à jour tâche ---
     await prisma.task.update({
       where: { id: taskId },
       data: updatePayload,
     });
 
-    // --- Mise à jour assignations ---
     if (data.assigneeIds !== undefined) {
       await updateTaskAssignments(taskId, data.assigneeIds);
     }
 
-    // --- Retourne tâche complète ---
     const fullTask = await prisma.task.findUnique({
       where: { id: taskId },
       include: {

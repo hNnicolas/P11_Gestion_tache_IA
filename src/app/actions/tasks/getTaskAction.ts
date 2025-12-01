@@ -10,7 +10,6 @@ import { sendError, sendSuccess } from "@/app/utils/response";
 
 export const getTaskAction = async (projectId: string, taskId: string) => {
   try {
-    // ---- 1. Auth via cookies ----
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
     if (!token) {
@@ -24,13 +23,11 @@ export const getTaskAction = async (projectId: string, taskId: string) => {
 
     const userId = user.userId;
 
-    // ---- 2. Vérification permission accès au projet ----
     const access = await hasProjectAccess(userId, projectId);
     if (!access) {
       return sendError("Accès refusé au projet", "FORBIDDEN", 403);
     }
 
-    // ---- 3. Vérifier existence tâche ----
     const task = await prisma.task.findFirst({
       where: { id: taskId, projectId },
       include: {
@@ -47,7 +44,6 @@ export const getTaskAction = async (projectId: string, taskId: string) => {
       return sendError("Tâche non trouvée", "TASK_NOT_FOUND", 404);
     }
 
-    // ---- 4. Assignations & commentaires ----
     const assignees = await getTaskAssignments(task.id);
     const comments = await getTaskComments(task.id);
 
@@ -57,7 +53,6 @@ export const getTaskAction = async (projectId: string, taskId: string) => {
       comments,
     };
 
-    // ---- 5. Réponse complète ----
     return sendSuccess("Tâche récupérée avec succès", {
       task: taskWithDetails,
     });

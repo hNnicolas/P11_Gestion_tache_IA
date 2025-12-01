@@ -11,9 +11,6 @@ export async function getTasks(projectId: string) {
   if (!projectId) throw new Error("ID du projet manquant");
 
   try {
-    // ----------------------
-    // 🔐 Authentification
-    // ----------------------
     const cookieStore = await cookies();
     const authToken = cookieStore.get("auth_token")?.value;
     if (!authToken) throw new Error("Utilisateur non connecté");
@@ -21,15 +18,9 @@ export async function getTasks(projectId: string) {
     const user = await verifyToken(authToken);
     if (!user) throw new Error("Token invalide");
 
-    // ----------------------
-    // 🔎 Vérification d'accès
-    // ----------------------
     const access = await hasProjectAccess(user.userId, projectId);
     if (!access) throw new Error("Vous n'avez pas accès à ce projet");
 
-    // ----------------------
-    // 📦 Récupération des tâches
-    // ----------------------
     const tasks = await prisma.task.findMany({
       where: { projectId },
       orderBy: { createdAt: "asc" },
@@ -43,9 +34,6 @@ export async function getTasks(projectId: string) {
       },
     });
 
-    // ----------------------
-    // 🧩 Enrichissement avec assignations & commentaires
-    // ----------------------
     const enrichedTasks = await Promise.all(
       tasks.map(async (task) => {
         const assignees = await getTaskAssignments(task.id);

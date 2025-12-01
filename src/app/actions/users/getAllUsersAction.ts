@@ -15,7 +15,6 @@ export async function getAllUsersAction(): Promise<UserForClient[]> {
       orderBy: { name: "asc" },
     });
 
-    // 🔹 Normalisation + assertion de type
     return users.map((u) => ({
       id: u.id,
       email: u.email,

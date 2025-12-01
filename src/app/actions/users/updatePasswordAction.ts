@@ -19,23 +19,17 @@ export async function updatePasswordAction({
   const token = cookieStore.get("auth_token")?.value;
   if (!token) throw new Error("Utilisateur non authentifié");
 
-  // --- Décodage JWT ---
   const decodedRaw = jwt.verify(token, JWT_SECRET) as any;
-  // console.log("[updatePasswordAction] Token décodé :", decodedRaw);
 
-  // Normalisation id / userId
   const userId = decodedRaw.id ?? decodedRaw.userId;
   if (!userId) throw new Error("Token JWT invalide : ID manquant");
 
-  // --- Validation backend ---
   const errors = validateUpdatePasswordData({ currentPassword, newPassword });
   if (errors.length > 0) throw new Error(errors[0].message);
 
-  // --- Récupération utilisateur ---
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new Error("Utilisateur non trouvé");
 
-  // --- Vérification password actuel ---
   const isValid = await bcrypt.compare(currentPassword, user.password);
   if (!isValid) throw new Error("Mot de passe actuel incorrect");
 

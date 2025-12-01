@@ -7,7 +7,6 @@ interface TasksKanbanProps {
   onTaskView: (task: ITask) => void;
 }
 
-// Traduction des statuts
 const STATUS_MAP: Record<ITask["status"], string> = {
   TODO: "À faire",
   IN_PROGRESS: "En cours",
@@ -15,7 +14,6 @@ const STATUS_MAP: Record<ITask["status"], string> = {
   CANCELLED: "Annulée",
 };
 
-// Couleurs de badges basées sur les variables CSS
 const BADGE_STYLES: Record<string, string> = {
   "À faire":
     "text-(--color-tag1)! bg-(--color-tag1-bg)! border border-(--color-tag1-bg)!",
@@ -26,7 +24,6 @@ const BADGE_STYLES: Record<string, string> = {
   Annulée: "text-(--color-sous-texte)! bg-[#f3f4f6]! border border-[#f3f4f6]!",
 };
 
-// Ordre des colonnes
 const STATUS_ORDER = ["À faire", "En cours", "Terminée"] as const;
 
 export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
@@ -42,7 +39,6 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
           key={status}
           className="flex-1 min-w-[300px] bg-[#FFFFFF] rounded-[10px] border border-[#E5E7EB] p-5 shadow-sm"
         >
-          {/* Titre colonne */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-[15px] text-[#111827] mb-6 flex items-center gap-2">
               {status}
@@ -52,7 +48,6 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
             </h3>
           </div>
 
-          {/* Liste des tâches */}
           <div className="flex flex-col gap-3">
             {tasksByStatus[status].length === 0 ? (
               <p className="text-(--color-sous-texte)! text-sm italic">
@@ -64,7 +59,6 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
                   key={task.id}
                   className="bg-white rounded-xl border border-[#E5E7EB] p-6 min-h-[140px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
                 >
-                  {/* Titre + Badge */}
                   <div className="flex items-center justify-between gap-2">
                     <h4 className="font-semibold text-[15px] text-[#111827] truncate flex-1 min-w-0">
                       {task.title}
@@ -76,13 +70,11 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
                     </span>
                   </div>
 
-                  {/* Description */}
                   <p className="text-(--color-sous-texte)! text-[13px] truncate mt-1">
                     {task.project?.description ?? "Aucune description"}
                   </p>
 
                   <div className="flex items-center gap-2 mt-3 text-[12px] text-(--color-sous-texte)! truncate">
-                    {/* Projet */}
                     <div className="flex items-center gap-1 truncate">
                       <img
                         src="/images/icons/icon-folder.png"
@@ -98,7 +90,6 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
 
                     <span className="mx-2 shrink-0">|</span>
 
-                    {/* Date */}
                     {task.dueDate && (
                       <>
                         <div className="flex items-center gap-1 shrink-0">
@@ -124,7 +115,6 @@ export default function TasksKanban({ tasks, onTaskView }: TasksKanbanProps) {
                       </>
                     )}
 
-                    {/* Commentaires */}
                     <div className="flex items-center gap-1 shrink-0">
                       <img
                         src="/images/icons/icon-message.png"

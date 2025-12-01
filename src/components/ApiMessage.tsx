@@ -19,10 +19,8 @@ export default function ApiMessage({
     if (response) {
       setVisible(true);
 
-      // Focus automatique pour les technologies d’assistance
       messageRef.current?.focus();
 
-      // Timer d’auto-fermeture
       const timer = setTimeout(() => setVisible(false), duration);
       return () => clearTimeout(timer);
     }

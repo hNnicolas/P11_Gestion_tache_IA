@@ -1,12 +1,4 @@
-import {
-  PrismaClient,
-  User,
-  Project,
-  Task,
-  Comment,
-  TaskAssignee,
-  ProjectMember,
-} from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -18,23 +10,16 @@ if (process.env.NODE_ENV !== "production") {
   globalThis.prisma = prisma;
 }
 
-/* =========================
-   Interfaces Frontend
-   ========================= */
-
-// Utilisateur
 export interface IUser {
   id: string;
   email: string;
   name: string;
 }
 
-// Initiales pour l'affichage
 export interface IUserInitials {
-  initials: string; // "AD" par exemple
+  initials: string;
 }
 
-// Projet
 export interface ITask {
   id: string;
   title: string;
@@ -68,7 +53,6 @@ export interface ITask {
   creatorId: string;
 }
 
-// Commentaire
 export interface IComment {
   id: string;
   taskId: string;
@@ -77,11 +61,10 @@ export interface IComment {
   updatedAt: Date;
   author: {
     id: string;
-    name: string | null; // nullable pour correspondre à Prisma
+    name: string | null;
   };
 }
 
-// Pour la création côté front (utile pour forms)
 export interface ICreateUser {
   email: string;
   name: string;

@@ -12,7 +12,6 @@ import {
 export const getProjectByIdAction = async (projectId: string) => {
   if (!projectId) throw new Error("ID du projet manquant");
 
-  // 🔐 Authentification
   const cookieStore = await cookies();
   const authToken = cookieStore.get("auth_token")?.value;
   if (!authToken) throw new Error("Non authentifié");
@@ -20,16 +19,10 @@ export const getProjectByIdAction = async (projectId: string) => {
   const user = await verifyToken(authToken);
   if (!user) throw new Error("Token invalide");
 
-  // console.log("DEBUG authToken:", authToken);
-  // console.log("DEBUG verifyToken result:", user);
-
-  // 🔎 Vérification d’accès
   const access = await hasProjectAccess(user.userId, projectId);
-  // console.log("DEBUG getProjectByIdAction - Access granted:", access);
 
   if (!access) throw new Error("Accès refusé au projet");
 
-  // 📦 Requête principale avec toutes les relations nécessaires
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
@@ -60,7 +53,6 @@ export const getProjectByIdAction = async (projectId: string) => {
   if (!project) throw new Error("Projet non trouvé");
 
   const role: Role | null = await getUserProjectRole(user.userId, projectId);
-  // console.log("DEBUG getProjectByIdAction - User role:", role);
 
   return { ...project, userRole: role };
 };
