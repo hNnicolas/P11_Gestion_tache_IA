@@ -24,17 +24,17 @@ Ce projet est construit dans un contexte pédagogique et professionnel : archite
 
 Voici quelques captures d’écran de l’interface utilisateur :
 
-![Screenshot 1](/screenshot/screenshot-1.png)
-![Screenshot 2](/screenshot/screenshot-2.png)
-![Screenshot 3](/screenshot/screenshot-3.png)
-![Screenshot 4](/screenshot/screenshot-4.png)
-![Screenshot 5](/screenshot/screenshot-5.png)
-![Screenshot 6](/screenshot/screenshot-6.png)
-![Screenshot 7](/screenshot/screenshot-7.png)
-![Screenshot 8](/screenshot/screenshot-8.png)
-![Screenshot 9](/screenshot/screenshot-9.png)
-![Screenshot 10](/screenshot/screenshot-10.png)
-![Screenshot 11](/screenshot/screenshot-11.png)
+![Screenshot 1](public/screenshot/screenshot-1.png)
+![Screenshot 2](public/screenshot/screenshot-2.png)
+![Screenshot 3](public/screenshot/screenshot-3.png)
+![Screenshot 4](public/screenshot/screenshot-4.png)
+![Screenshot 5](public/screenshot/screenshot-5.png)
+![Screenshot 6](public/screenshot/screenshot-6.png)
+![Screenshot 7](public/screenshot/screenshot-7.png)
+![Screenshot 8](public/screenshot/screenshot-8.png)
+![Screenshot 9](public/screenshot/screenshot-9.png)
+![Screenshot 10](public//screenshot/screenshot-10.png)
+![Screenshot 11](public//screenshot/screenshot-11.png)
 
 ---
 
