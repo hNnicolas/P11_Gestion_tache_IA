@@ -220,19 +220,23 @@ Sinon → génère une ou plusieurs tâches :
                 >
                   <input
                     value={task.title}
+                    aria-label="Titre de la tâche"
                     onChange={(e) =>
                       handleUpdateField(task.id, "title", e.target.value)
                     }
                     className="w-full outline-none text-lg font-semibold mb-1"
                   />
+
                   <textarea
                     value={task.description ?? ""}
+                    aria-label="Description de la tâche"
                     onChange={(e) =>
                       handleUpdateField(task.id, "description", e.target.value)
                     }
                     className="w-full outline-none text-sm text-gray-600 mb-4 resize-none"
                     rows={3}
                   />
+
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <button
                       onClick={() => handleDelete(task.id)}
@@ -276,12 +280,14 @@ Sinon → génère une ou plusieurs tâches :
             <div className="sticky bottom-0 bg-[#F9FAFB] rounded-[20px] p-3 flex items-center gap-2">
               <input
                 type="text"
+                aria-label="Champ de saisie pour générer des tâches"
                 placeholder="Décrivez les tâches que vous souhaitez ajouter..."
                 className="flex-1 bg-transparent outline-none px-2 py-2"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && void handleGenerate()}
               />
+
               <button
                 onClick={handleGenerate}
                 disabled={loading}

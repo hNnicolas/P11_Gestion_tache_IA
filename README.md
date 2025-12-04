@@ -1,28 +1,69 @@
-# Projet Next.js – Gestion de tâches avec commentaires
+# 🍑 Abricot – Gestion de tâches & IA intégrée
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).  
-It includes a task management system, project management, and a commenting feature with user authentication.
+_Application Next.js pour gérer projets, tâches, commentaires et génération IA._
 
 ---
 
-## Description
+## 🧭 Présentation du projet
 
-This project allows users to:
+**Abricot** est une application web moderne de gestion de projets et de tâches, pensée pour être simple, rapide et collaborative.  
+Elle intègre :
 
-- Create and manage projects.
-- Create tasks inside projects.
-- Add, update, and delete comments on tasks.
-- Authenticate users with JWT tokens.
-- Handle user permissions to control access to projects and tasks.
+- ✔️ Gestion de projets
+- ✔️ Gestion de tâches
+- ✔️ Commentaires en temps réel
+- ✔️ Authentification JWT
+- ✔️ Génération de tâches intelligente via IA (Mistral)
+- ✔️ Interface soignée développée avec **Next.js + TailwindCSS**
 
-### Features
+Ce projet est construit dans un contexte pédagogique et professionnel : architecture claire, API REST propre et frontend modulaire.
 
-- User authentication (JWT-based)
-- Project access control and permissions
-- Real-time comment creation, modification, and deletion
-- Task and project management
-- TailwindCSS styling
-- Integration with Mistral API (via `@mistralai/mistralai`)
+---
+
+## 🖼️ Aperçu de l’application
+
+Voici quelques captures d’écran de l’interface utilisateur :
+
+<p align="center">
+  <img src="/screenshot/screenshot-1.png" width="700" />
+  <img src="/screenshot/screenshot-2.png" width="700" />
+  <img src="/screenshot/screenshot-3.png" width="700" />
+  <img src="/screenshot/screenshot-4.png" width="700" />
+  <img src="/screenshot/screenshot-5.png" width="700" />
+  <img src="/screenshot/screenshot-6.png" width="700" />
+  <img src="/screenshot/screenshot-7.png" width="700" />
+  <img src="/screenshot/screenshot-8.png" width="700" />
+  <img src="/screenshot/screenshot-9.png" width="700" />
+  <img src="/screenshot/screenshot-10.png" width="700" />
+  <img src="/screenshot/screenshot-11.png" width="700" />
+</p>
+
+---
+
+## 🎯 Fonctionnalités principales
+
+| Domaine              | Fonctionnalités                                            |
+| -------------------- | ---------------------------------------------------------- |
+| **Authentification** | JWT, sessions, gestion utilisateur                         |
+| **Projets**          | Création / édition / suppression, permissions              |
+| **Tâches**           | CRUD complet, association à un projet                      |
+| **Commentaires**     | Ajout, modification & suppression                          |
+| **IA Mistral**       | Génération automatique de tâches selon un contexte         |
+| **UI/UX**            | Interface moderne Next.js + TailwindCSS                    |
+| **Sécurité**         | Vérification des droits d'accès backend + tokens sécurisés |
+
+---
+
+## 🏗️ Stack Technique
+
+| Catégorie     | Technologie                                      |
+| ------------- | ------------------------------------------------ |
+| **Frontend**  | Next.js 14, React Server Components, TailwindCSS |
+| **Backend**   | Node.js, Express / Fastify                       |
+| **Database**  | PostgreSQL via Prisma                            |
+| **IA**        | API Mistral (`@mistralai/mistralai`)             |
+| **Auth**      | JWT, middlewares & guards                        |
+| **Dev Tools** | ESLint, Prettier, GitHub, VSCode                 |
 
 ---
 
