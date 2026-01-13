@@ -1,14 +1,14 @@
 "use client";
 
-import { validateRegisterData } from "@/app/utils/validation";
-import { ValidationError } from "@/app/utils/validation";
+import { validateRegisterData, ValidationError } from "@/app/utils/validation";
 
-export async function createUserAction(data: {
+export async function createUser(data: {
   email: string;
   name: string;
   password: string;
 }) {
   const errors: ValidationError[] = validateRegisterData(data);
+
   if (errors.length > 0) {
     const message = errors.map((e) => `${e.field}: ${e.message}`).join("\n");
     throw new Error(message);
@@ -18,7 +18,9 @@ export async function createUserAction(data: {
 
   const res = await fetch("/api/auth/register", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ email, name, password }),
   });
 
@@ -29,5 +31,6 @@ export async function createUserAction(data: {
   }
 
   console.log("Utilisateur créé via le backend :", json.user);
+
   return json.user;
 }
