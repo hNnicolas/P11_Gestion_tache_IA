@@ -1,4 +1,5 @@
-// app/api/auth/password/route.ts
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
