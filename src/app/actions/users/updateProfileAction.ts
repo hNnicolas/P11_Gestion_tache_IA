@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
-
-("use server");
+// prettier-ignore
+"use server";
 
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";

@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+// prettier-ignore
 "use server";
 
 import { ITask } from "@/lib/prisma";

@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+// prettier-ignore
 "use server";
 
 import { prisma } from "@/lib/prisma";
