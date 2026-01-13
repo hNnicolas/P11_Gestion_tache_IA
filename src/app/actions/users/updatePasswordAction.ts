@@ -1,4 +1,5 @@
-"use server";
+export const runtime = "nodejs";
+("use server");
 
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
