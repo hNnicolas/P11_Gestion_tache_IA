@@ -1,4 +1,6 @@
 export const runtime = "nodejs";
+// prettier-ignore
+"use server";
 
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
